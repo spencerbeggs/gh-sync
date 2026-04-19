@@ -16,7 +16,7 @@
 				}
 			],
 			"title": "Log level",
-			"description": "Default output verbosity. Can be overridden with --verbosity CLI flag."
+			"description": "Default output verbosity. Can be overridden with --log-level CLI flag."
 		},
 		"settings": {
 			"type": "object",

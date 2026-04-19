@@ -58,15 +58,14 @@ export const CredentialResolverLive = Layer.effect(
 					// Resolve op entries
 					if (resolveSection.op) {
 						const opToken = profile.op_service_account_token;
+						if (!opToken) {
+							return yield* Effect.fail(
+								new ResolveError({
+									message: "No 1Password service account token provided but resolve.op entries are defined",
+								}),
+							);
+						}
 						for (const [label, reference] of Object.entries(resolveSection.op)) {
-							if (!opToken) {
-								yield* Effect.fail(
-									new ResolveError({
-										message: `No 1Password service account token for label '${label}' (${reference})`,
-									}),
-								);
-								continue;
-							}
 							const value = yield* opClient.resolve(reference, opToken).pipe(
 								Effect.mapError(
 									(err) =>

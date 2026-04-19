@@ -33,10 +33,22 @@ const noCleanupOption = Options.boolean("no-cleanup").pipe(
 	Options.withDefault(false),
 );
 
+const logLevelOption = Options.choice("log-level", ["silent", "info", "verbose", "debug"]).pipe(
+	Options.withDescription("Set output verbosity (overrides log_level in config)"),
+	Options.optional,
+);
+
 export const syncCommand = Command.make(
 	"sync",
-	{ config: configOption, group: groupOption, repo: repoOption, dryRun: dryRunOption, noCleanup: noCleanupOption },
-	({ config, group, repo, dryRun, noCleanup }) =>
+	{
+		config: configOption,
+		group: groupOption,
+		repo: repoOption,
+		dryRun: dryRunOption,
+		noCleanup: noCleanupOption,
+		logLevel: logLevelOption,
+	},
+	({ config, group, repo, dryRun, noCleanup, logLevel: logLevelFlag }) =>
 		Effect.gen(function* () {
 			const configFlag = config._tag === "Some" ? config.value : undefined;
 			const configDir = resolveConfigDir({ configFlag });
@@ -68,8 +80,8 @@ export const syncCommand = Command.make(
 				return;
 			}
 
-			// Determine log level: config file value (CLI flag override comes in a future task)
-			const logLevel: LogLevel = parsedConfig.log_level;
+			// CLI flag overrides config file value
+			const logLevel: LogLevel = logLevelFlag._tag === "Some" ? logLevelFlag.value : parsedConfig.log_level;
 
 			const githubLayer = GitHubClientLive(token);
 			const opLayer = OnePasswordClientLive;

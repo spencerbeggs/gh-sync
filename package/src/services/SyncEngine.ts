@@ -98,10 +98,11 @@ function substituteResolved(obj: Record<string, unknown>, credentialMap: Map<str
 			const rec = value as Record<string, unknown>;
 			if ("resolved" in rec && typeof rec.resolved === "string") {
 				const resolved = credentialMap.get(rec.resolved);
-				if (resolved) {
-					const num = Number(resolved);
-					obj[key] = Number.isNaN(num) ? resolved : num;
+				if (resolved === undefined) {
+					throw new Error(`Credential label '${rec.resolved}' not found for ruleset field '${key}'`);
 				}
+				const num = Number(resolved);
+				obj[key] = Number.isNaN(num) ? resolved : num;
 			} else {
 				substituteResolved(rec, credentialMap);
 			}
