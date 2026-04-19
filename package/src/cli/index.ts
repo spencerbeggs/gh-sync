@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { Command } from "@effect/cli";
+import { Command, Options } from "@effect/cli";
 import { NodeContext, NodeRuntime } from "@effect/platform-node";
 import { Effect } from "effect";
 import { ConfigLoaderLive } from "../services/ConfigLoader.js";
@@ -10,7 +10,12 @@ import { listCommand } from "./commands/list.js";
 import { syncCommand } from "./commands/sync.js";
 import { validateCommand } from "./commands/validate.js";
 
-const rootCommand = Command.make("gh-sync").pipe(
+export const verbosityOption = Options.choice("verbosity", ["silent", "info", "verbose", "debug"]).pipe(
+	Options.withDescription("Set output verbosity"),
+	Options.withDefault("info" as const),
+);
+
+const rootCommand = Command.make("gh-sync", { verbosity: verbosityOption }).pipe(
 	Command.withSubcommands([syncCommand, listCommand, validateCommand, doctorCommand, initCommand, credentialsCommand]),
 );
 

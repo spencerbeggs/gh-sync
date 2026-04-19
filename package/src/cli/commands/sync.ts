@@ -3,11 +3,13 @@ import { join } from "node:path";
 import { Command, Options } from "@effect/cli";
 import { Console, Effect, Layer } from "effect";
 import { resolveConfigDir } from "../../lib/config-path.js";
+import type { LogLevel } from "../../schemas/config.js";
 import { ConfigLoader } from "../../services/ConfigLoader.js";
+import { CredentialResolverLive } from "../../services/CredentialResolver.js";
 import { GitHubClientLive } from "../../services/GitHubClient.js";
 import { OnePasswordClientLive } from "../../services/OnePasswordClient.js";
 import { SyncEngine, SyncEngineLive } from "../../services/SyncEngine.js";
-import { ValueResolverLive } from "../../services/ValueResolver.js";
+import { SyncLoggerLive } from "../../services/SyncLogger.js";
 
 const configOption = Options.file("config").pipe(
 	Options.withDescription("Path to config directory or gh-sync.config.toml file"),
@@ -66,16 +68,23 @@ export const syncCommand = Command.make(
 				return;
 			}
 
+			// Determine log level: config file value (CLI flag override comes in a future task)
+			const logLevel: LogLevel = parsedConfig.log_level;
+
 			const githubLayer = GitHubClientLive(token);
 			const opLayer = OnePasswordClientLive;
-			const resolverLayer = Layer.provide(ValueResolverLive, opLayer);
-			const engineLayer = Layer.provideMerge(SyncEngineLive, Layer.merge(githubLayer, resolverLayer));
+			const resolverLayer = Layer.provide(CredentialResolverLive, opLayer);
+			const loggerLayer = SyncLoggerLive({ dryRun, logLevel });
+			const engineLayer = Layer.provideMerge(
+				SyncEngineLive,
+				Layer.merge(Layer.merge(githubLayer, resolverLayer), loggerLayer),
+			);
 
 			const groupFilter = group._tag === "Some" ? group.value : undefined;
 			const repoFilter = repo._tag === "Some" ? repo.value : undefined;
 
-			if (dryRun) {
-				yield* Console.log("DRY RUN - no changes will be made\n");
+			if (dryRun && logLevel !== "silent") {
+				yield* Console.log("DRY RUN \u2014 no changes will be made\n");
 			}
 
 			yield* Effect.provide(
@@ -86,11 +95,10 @@ export const syncCommand = Command.make(
 						noCleanup,
 						groupFilter,
 						repoFilter,
+						configDir,
 					});
 				}),
 				engineLayer,
 			);
-
-			yield* Console.log("\nSync complete!");
 		}),
 ).pipe(Command.withDescription("Sync repos with GitHub"));
