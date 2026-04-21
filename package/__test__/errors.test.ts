@@ -1,26 +1,8 @@
 import { Effect } from "effect";
 import { describe, expect, it } from "vitest";
-import {
-	ConfigError,
-	CredentialsError,
-	GitHubApiError,
-	OnePasswordError,
-	ResolveError,
-	SyncError,
-} from "../src/errors.js";
+import { GitHubApiError, OnePasswordError, ResolveError, SyncError } from "../src/errors.js";
 
 describe("Error types", () => {
-	it("ConfigError has correct tag and message", () => {
-		const error = new ConfigError({ message: "Invalid TOML" });
-		expect(error._tag).toBe("ConfigError");
-		expect(error.message).toBe("Invalid TOML");
-	});
-
-	it("CredentialsError has correct tag", () => {
-		const error = new CredentialsError({ message: "Profile not found: work" });
-		expect(error._tag).toBe("CredentialsError");
-	});
-
 	it("ResolveError has correct tag", () => {
 		const error = new ResolveError({ message: "File not found: ./private/key" });
 		expect(error._tag).toBe("ResolveError");
@@ -43,7 +25,7 @@ describe("Error types", () => {
 	});
 
 	it("errors work in Effect.fail", () => {
-		const program = Effect.fail(new ConfigError({ message: "bad config" }));
+		const program = Effect.fail(new ResolveError({ message: "bad resolve" }));
 		const result = Effect.runSyncExit(program);
 		expect(result._tag).toBe("Failure");
 	});

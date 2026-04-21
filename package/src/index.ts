@@ -11,7 +11,7 @@
 // Services
 export { AppDirs, ConfigError as XdgConfigError } from "xdg-effect";
 // Errors
-export { ConfigError, CredentialsError, GitHubApiError, OnePasswordError, ResolveError, SyncError } from "./errors.js";
+export { GitHubApiError, OnePasswordError, ResolveError, SyncError } from "./errors.js";
 // Utilities
 export { encryptSecret } from "./lib/crypto.js";
 // Schemas

@@ -41,7 +41,7 @@ const credentialsLayer = makeConfigFileLive({
 	schema: CredentialsSchema,
 	codec: TomlCodec,
 	strategy: FirstMatch,
-	resolvers: [XdgConfig({ filename: CREDENTIALS_FILENAME })],
+	resolvers: [UpwardWalk({ filename: CREDENTIALS_FILENAME }), XdgConfig({ filename: CREDENTIALS_FILENAME })],
 }).pipe(Layer.provide(xdgLayer));
 
 export const ConfigFilesLive = Layer.mergeAll(xdgLayer, credentialsLayer);

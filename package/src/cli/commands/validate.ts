@@ -1,13 +1,8 @@
 import { existsSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 import { Command, Options } from "@effect/cli";
 import { Console, Effect } from "effect";
-import {
-	RepoSyncConfigFile,
-	RepoSyncCredentialsFile,
-	loadConfigWithDir,
-	resolveConfigFlag,
-} from "../../services/ConfigFiles.js";
+import { RepoSyncConfigFile, RepoSyncCredentialsFile, loadConfigWithDir } from "../../services/ConfigFiles.js";
 
 const configOption = Options.file("config").pipe(
 	Options.withDescription("Path to config directory or repo-sync.config.toml file"),
@@ -124,15 +119,7 @@ export const validateCommand = Command.make("validate", { config: configOption }
 		}
 
 		const credentialsFile = yield* RepoSyncCredentialsFile;
-
-		// Try loading credentials from XDG location, or from configDir
-		const resolvedFlag = resolveConfigFlag(config);
-		const credsInConfigDir = resolvedFlag ? join(dirname(resolvedFlag), "repo-sync.credentials.toml") : undefined;
-		const credsResult = yield* Effect.either(
-			credsInConfigDir
-				? credentialsFile.loadFrom(credsInConfigDir).pipe(Effect.orElse(() => credentialsFile.load))
-				: credentialsFile.load,
-		);
+		const credsResult = yield* Effect.either(credentialsFile.load);
 
 		if (credsResult._tag === "Left") {
 			yield* Console.log("Credentials file: not found (optional)");

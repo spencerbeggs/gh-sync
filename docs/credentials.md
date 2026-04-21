@@ -12,7 +12,7 @@ Running `repo-sync init` creates the file and automatically adds a `.gitignore` 
 
 The credentials file is stored in the XDG config directory by default (`~/.config/repo-sync/repo-sync.credentials.toml`, or `~/.repo-sync/repo-sync.credentials.toml` if `XDG_CONFIG_HOME` is not set).
 
-The `repo-sync credentials` subcommands always read and write from the XDG location. The `sync` and `validate` commands also check for a credentials file alongside the config file when `--config` points to a specific directory, falling back to XDG if none is found there.
+The `repo-sync credentials` subcommands always read and write from the XDG location. The `sync`, `validate`, and other config-loading commands discover the credentials file using the same strategy as the config file: first walking up from the current directory, then falling back to the XDG config directory. This means `repo-sync init --project` places credentials alongside the config file and both are discovered automatically.
 
 ## Profile Structure
 
