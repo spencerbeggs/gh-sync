@@ -230,6 +230,22 @@ function makeAppDirsLayer(configDir: string) {
 	});
 }
 
+/**
+ * Build a layer with AppDirs + RepoSyncCredentialsFile pointing at the given config dir.
+ * Used for credentials command tests that need the credentials service.
+ */
+function makeAppDirsWithCredsLayer(configDir: string) {
+	const base = makeAppDirsLayer(configDir);
+	const credsLayer = makeConfigFileLive({
+		tag: RepoSyncCredentialsFile,
+		schema: CredentialsSchema,
+		codec: TomlCodec,
+		strategy: FirstMatch,
+		resolvers: [ExplicitPath(join(configDir, "repo-sync.credentials.toml"))],
+	}).pipe(Layer.provide(base));
+	return Layer.mergeAll(base, credsLayer);
+}
+
 function writeFixture(dir: string, filename: string, content: string): string {
 	const path = join(dir, filename);
 	writeFileSync(path, content);
@@ -327,7 +343,7 @@ describe("credentials command", () => {
 	it("creates a new credential profile", async () => {
 		const xdgDir = join(tmpDir, "xdg-config", "repo-sync");
 		mkdirSync(xdgDir, { recursive: true });
-		const layer = makeAppDirsLayer(xdgDir);
+		const layer = makeAppDirsWithCredsLayer(xdgDir);
 
 		await runCommand(
 			credentialsCommand,
@@ -346,7 +362,7 @@ describe("credentials command", () => {
 		const xdgDir = join(tmpDir, "xdg-config", "repo-sync");
 		mkdirSync(xdgDir, { recursive: true });
 		writeFixture(xdgDir, "repo-sync.credentials.toml", VALID_CREDENTIALS);
-		const layer = makeAppDirsLayer(xdgDir);
+		const layer = makeAppDirsWithCredsLayer(xdgDir);
 
 		const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
 		await runCommand(credentialsCommand, ["credentials", "list"], layer);
@@ -360,7 +376,7 @@ describe("credentials command", () => {
 		const xdgDir = join(tmpDir, "xdg-config", "repo-sync");
 		mkdirSync(xdgDir, { recursive: true });
 		writeFixture(xdgDir, "repo-sync.credentials.toml", VALID_CREDENTIALS);
-		const layer = makeAppDirsLayer(xdgDir);
+		const layer = makeAppDirsWithCredsLayer(xdgDir);
 
 		await runCommand(credentialsCommand, ["credentials", "delete", "--profile", "personal"], layer);
 
@@ -372,7 +388,7 @@ describe("credentials command", () => {
 		const xdgDir = join(tmpDir, "xdg-config", "repo-sync");
 		mkdirSync(xdgDir, { recursive: true });
 		writeFixture(xdgDir, "repo-sync.credentials.toml", VALID_CREDENTIALS);
-		const layer = makeAppDirsLayer(xdgDir);
+		const layer = makeAppDirsWithCredsLayer(xdgDir);
 
 		const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 		await runCommand(
@@ -389,7 +405,7 @@ describe("credentials command", () => {
 		const xdgDir = join(tmpDir, "xdg-config", "repo-sync");
 		mkdirSync(xdgDir, { recursive: true });
 		writeFixture(xdgDir, "repo-sync.credentials.toml", VALID_CREDENTIALS);
-		const layer = makeAppDirsLayer(xdgDir);
+		const layer = makeAppDirsWithCredsLayer(xdgDir);
 
 		const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 		await runCommand(credentialsCommand, ["credentials", "delete", "--profile", "nonexistent"], layer);
@@ -401,7 +417,7 @@ describe("credentials command", () => {
 	it("shows message when no profiles exist", async () => {
 		const xdgDir = join(tmpDir, "xdg-config", "repo-sync");
 		mkdirSync(xdgDir, { recursive: true });
-		const layer = makeAppDirsLayer(xdgDir);
+		const layer = makeAppDirsWithCredsLayer(xdgDir);
 
 		const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
 		await runCommand(credentialsCommand, ["credentials", "list"], layer);
@@ -413,7 +429,7 @@ describe("credentials command", () => {
 	it("rejects create with no tokens provided", async () => {
 		const xdgDir = join(tmpDir, "xdg-config", "repo-sync");
 		mkdirSync(xdgDir, { recursive: true });
-		const layer = makeAppDirsLayer(xdgDir);
+		const layer = makeAppDirsWithCredsLayer(xdgDir);
 
 		const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 		await runCommand(credentialsCommand, ["credentials", "create", "--profile", "empty"], layer);
