@@ -10,6 +10,10 @@ Rulesets are defined as `[rulesets.<name>]` tables in the config. Each is a disc
 - `type` (`"branch"` or `"tag"`) — determines which rules are available
 - `enforcement` (`"active"`, `"evaluate"`, or `"disabled"`)
 
+### Testing rulesets safely
+
+Use `enforcement = "evaluate"` to test a ruleset without blocking contributors. In evaluate mode, GitHub logs rule violations in the audit log and shows rule results on pull requests, but does not enforce them. Once you are confident the ruleset is correct, change the enforcement to `"active"`.
+
 ## Targets
 
 The `targets` shorthand field sets which branches or tags the ruleset applies to:
@@ -141,6 +145,21 @@ bypass_actors = [
 
 You can mix static integers and resolved references in the same ruleset. See [Credentials](credentials.md) for how to define resolved labels.
 
+### Finding numeric IDs
+
+Several ruleset fields require numeric IDs (`actor_id`, `integration_id`, etc.). You can look these up with the GitHub CLI:
+
+```sh
+# Find a user's numeric ID
+gh api /users/USERNAME --jq .id
+
+# Find a team's numeric ID
+gh api /orgs/ORG/teams/TEAM-SLUG --jq .id
+
+# Find an app's integration ID
+gh api /apps/APP-SLUG --jq .id
+```
+
 ## Rule Types
 
 | Rule Type | Branch | Tag |
@@ -167,6 +186,20 @@ You can mix static integers and resolved references in the same ruleset. See [Cr
 | workflows | yes | no |
 | code_scanning | yes | no |
 | copilot_code_review | yes | no |
+
+## Tag Ruleset Example
+
+Tag rulesets use `type = "tag"` and support the same boolean rules, but do not support pull request or branch-specific rules.
+
+```toml
+[rulesets.release-tags]
+name = "release-tags"
+type = "tag"
+enforcement = "active"
+targets = [{ include = "refs/tags/v*" }]
+deletion = true
+non_fast_forward = true
+```
 
 ## Complete Example
 

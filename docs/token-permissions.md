@@ -12,7 +12,11 @@ repo-sync requires a fine-grained personal access token (not a classic token). F
 | Repository | Secrets | Read and write | Manage Actions, Dependabot, and Codespaces secrets |
 | Repository | Variables | Read and write | Manage Actions and environment variables |
 | Repository | Environments | Read and write | Create and configure deployment environments |
-| Account | GPG keys | Read and write | Retrieve the public key for encrypting secrets |
+| Account | GPG keys | Read and write | Retrieve the repository public key for encrypting secrets (see below) |
+
+### Why GPG Keys Access Is Required
+
+The GitHub API does not accept secret values in plaintext. Before uploading a secret, repo-sync must first fetch the repository's public encryption key via the API, use it to encrypt the secret value with libsodium sealed-box encryption, and then send the encrypted payload. The "Account permissions > GPG keys (Read and write)" scope grants access to this encryption key endpoint. Without it, repo-sync cannot create or update any secrets.
 
 ## Creating a Token
 
@@ -43,9 +47,12 @@ See [Credentials](credentials.md) for more on credential profiles.
 
 ## Scope Recommendations
 
-- If you manage many repos, "All repositories" is simpler to maintain
-- For tighter control, select only the repos listed in your config's group `repos` arrays
-- You can use `repo-sync doctor` to verify your setup and check for configuration issues
+Under "Repository access" when creating the token, you have two choices:
+
+- **All repositories** -- simpler to maintain, especially if you manage many repos or frequently add new ones to your config groups.
+- **Only select repositories** -- tighter security, granting access only to the specific repositories listed in your config's group `repos` arrays. However, if you add new repos to your config later, you will need to update the token's repository scope to include them or API calls for those repos will fail.
+
+You can use `repo-sync doctor` to verify your setup and check for configuration issues.
 
 ## Verifying Permissions
 

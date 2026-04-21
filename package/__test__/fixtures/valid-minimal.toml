@@ -1,0 +1,2 @@
+[groups.my-projects]
+repos = ["repo-one", "repo-two"]

@@ -25,6 +25,16 @@ reviewers = [
 
 Types: `"User"` or `"Team"`. The `id` is the GitHub user or team numeric ID.
 
+To look up numeric IDs with the GitHub CLI:
+
+```sh
+# Find a user's numeric ID
+gh api /users/USERNAME --jq .id
+
+# Find a team's numeric ID
+gh api /orgs/ORG/teams/TEAM-SLUG --jq .id
+```
+
 ## Deployment Branch Policies
 
 The `deployment_branches` field accepts three forms.
@@ -76,6 +86,10 @@ variables = { actions = ["turbo"], environments = { staging = ["turbo"] } }
 ```
 
 See [Secrets and Variables](secrets-and-variables.md) for details on scoping.
+
+## Drift and Cleanup
+
+If an environment is removed from the config but was previously synced to repos, it will remain on those repos unless cleanup is enabled for the `environments` scope in the group's cleanup config. See [Cleanup](cleanup.md) for how to enable automatic removal of undeclared environments.
 
 ## Complete Example
 

@@ -2,7 +2,7 @@
 import { Command } from "@effect/cli";
 import { NodeContext, NodeRuntime } from "@effect/platform-node";
 import { Effect } from "effect";
-import { ConfigLoaderLive } from "../services/ConfigLoader.js";
+import { ConfigFilesLive } from "../services/ConfigFiles.js";
 import { credentialsCommand } from "./commands/credentials.js";
 import { doctorCommand } from "./commands/doctor.js";
 import { initCommand } from "./commands/init.js";
@@ -20,7 +20,7 @@ const cli = Command.run(rootCommand, {
 });
 
 const program = Effect.suspend(() => cli(process.argv)).pipe(
-	Effect.provide(ConfigLoaderLive),
+	Effect.provide(ConfigFilesLive),
 	Effect.provide(NodeContext.layer),
 );
 

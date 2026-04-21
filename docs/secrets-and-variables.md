@@ -4,6 +4,10 @@
 
 Secrets and variables are defined as named groups in the config, then assigned to repo groups by scope. Each group is exactly one of three kinds, determined by its sub-key. Secrets are encrypted using NaCl sealed boxes before upload. Variables are plain text. Both use the same three-kind group model but differ in available scopes.
 
+## Choosing a Kind
+
+For getting started, use `value`-kind groups for simplicity -- secret and variable values are written directly in the config file. Use `file`-kind for secrets stored on disk (useful for large values like private keys). Use `resolved`-kind when sharing configs across machines via credential profiles, or when pulling values from 1Password.
+
 ## Three Kinds
 
 Each group is a discriminated union: it must contain exactly one of `file`, `value`, or `resolved` as its sub-key.
@@ -80,6 +84,12 @@ Variables use a `VariableScopes` object with two fields:
 [groups.my-projects]
 variables = { actions = ["turbo", "bot"], environments = { staging = ["turbo"] } }
 ```
+
+## Scoping Interactions
+
+A secret or variable group can be assigned to multiple scopes simultaneously. For example, the same `deploy` secrets group can appear in both `actions` and `environments.production`. The group's entries are synced independently to each scope -- there is no deduplication or conflict.
+
+Environment-scoped secrets and variables require the corresponding environment to be defined in the top-level `[environments]` section and referenced in the group's `environments` array. The sync engine creates environments before syncing environment-scoped resources.
 
 ## Environment-Scoped Resources
 

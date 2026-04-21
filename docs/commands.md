@@ -15,12 +15,17 @@ Apply config to all repos in a group, or all groups. Loads `repo-sync.config.tom
 | `--no-cleanup` | boolean | `false` | Skip cleanup of undeclared resources |
 | `--log-level` | choice | (optional) | Override output verbosity |
 
+The `--dry-run` flag output is affected by `--log-level`: at `info` level it shows summaries of what would change, while at `verbose` level it shows per-resource "would sync" lines with full detail.
+
 ```sh
 # Sync all groups
 repo-sync sync
 
 # Preview changes without applying
 repo-sync sync --dry-run
+
+# Dry-run with per-resource detail
+repo-sync sync --dry-run --log-level verbose
 
 # Sync a specific group
 repo-sync sync --group my-projects
@@ -49,7 +54,7 @@ repo-sync list
 
 ## validate
 
-Validate `repo-sync.config.toml` against its schema without making any API calls. Checks schema compliance and reference integrity: verifies that referenced settings, secret, variable, and ruleset groups exist; that file paths in `file`-kind secret and variable groups exist on disk; and that credential profiles referenced by groups exist in `repo-sync.credentials.toml`.
+Validate `repo-sync.config.toml` against its schema without making any API calls. Checks schema compliance and reference integrity: verifies that referenced settings, secret, variable, and ruleset groups exist; that file paths in `file`-kind secret and variable groups exist on disk; that credential profiles referenced by groups exist in `repo-sync.credentials.toml`; that groups referencing environments point to environments that are actually defined; and that environment-scoped secret and variable group references are valid.
 
 | Flag | Type | Default | Description |
 | :--- | :--- | :------ | :---------- |
@@ -59,9 +64,18 @@ Validate `repo-sync.config.toml` against its schema without making any API calls
 repo-sync validate
 ```
 
+Example output when validation finds reference errors:
+
+```text
+$ repo-sync validate
+Config schema: valid
+Group 'my-projects': references unknown settings group 'typo-settings'
+Group 'my-projects': references unknown environment 'nonexistent'
+```
+
 ## doctor
 
-Deep config diagnostics. Runs everything `validate` does, plus Levenshtein-based typo detection for unknown keys at the top level, inside `[groups.*]` sections, and inside `[cleanup]`. Reports suggestions such as `unknown key 'has_wikis' -- did you mean 'has_wiki'?`. Also displays the required fine-grained token permissions.
+Deep config diagnostics. Runs everything `validate` does, plus Levenshtein-based typo detection for unknown keys at the top level, inside `[groups.*]` sections, and inside `[cleanup]`. This includes typo detection within `[groups.*.cleanup]` sections and their `secrets` and `variables` sub-keys. Reports suggestions such as `unknown key 'has_wikis' -- did you mean 'has_wiki'?`. Also displays the required fine-grained token permissions.
 
 | Flag | Type | Default | Description |
 | :--- | :--- | :------ | :---------- |

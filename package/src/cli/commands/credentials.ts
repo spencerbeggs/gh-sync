@@ -1,9 +1,12 @@
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { Command, Options } from "@effect/cli";
 import { Console, Effect } from "effect";
-import { parse, stringify } from "smol-toml";
-import { configDir } from "../../lib/xdg.js";
+import { AppDirs } from "xdg-effect";
+import type { Credentials } from "../../schemas/credentials.js";
+import { RepoSyncCredentialsFile } from "../../services/ConfigFiles.js";
+
+const CREDENTIALS_FILENAME = "repo-sync.credentials.toml";
 
 const profileOption = Options.text("profile").pipe(Options.withDescription("Credential profile name"));
 
@@ -17,20 +20,8 @@ const opTokenOption = Options.text("op-token").pipe(
 	Options.optional,
 );
 
-function getCredentialsPath(): string {
-	return join(configDir(), "repo-sync.credentials.toml");
-}
-
-function loadCredentialsFile(): Record<string, unknown> {
-	const path = getCredentialsPath();
-	if (!existsSync(path)) return {};
-	const content = readFileSync(path, "utf-8");
-	if (content.trim() === "") return {};
-	return parse(content);
-}
-
-function saveCredentialsFile(data: Record<string, unknown>): void {
-	writeFileSync(getCredentialsPath(), stringify(data));
+function loadCredentials(credentialsFile: Effect.Effect.Success<typeof RepoSyncCredentialsFile>) {
+	return credentialsFile.load.pipe(Effect.orElseSucceed((): Credentials => ({ profiles: {} })));
 }
 
 function redactToken(token: string): string {
@@ -43,15 +34,21 @@ const createCommand = Command.make(
 	{ profile: profileOption, githubToken: githubTokenOption, opToken: opTokenOption },
 	({ profile, githubToken, opToken }) =>
 		Effect.gen(function* () {
-			const data = loadCredentialsFile();
-			const profiles = (data.profiles ?? {}) as Record<string, unknown>;
+			const appDirs = yield* AppDirs;
+			const configDir = yield* appDirs.config;
+			if (!existsSync(configDir)) {
+				mkdirSync(configDir, { recursive: true });
+			}
 
-			if (profiles[profile]) {
+			const credentialsFile = yield* RepoSyncCredentialsFile;
+			const creds = yield* loadCredentials(credentialsFile);
+
+			if (creds.profiles[profile]) {
 				yield* Console.error(`Profile '${profile}' already exists. Delete it first.`);
 				return;
 			}
 
-			const newProfile: Record<string, string> = {};
+			const newProfile: { github_token?: string; op_service_account_token?: string } = {};
 			if (githubToken._tag === "Some") {
 				newProfile.github_token = githubToken.value;
 			}
@@ -59,14 +56,18 @@ const createCommand = Command.make(
 				newProfile.op_service_account_token = opToken.value;
 			}
 
-			if (Object.keys(newProfile).length === 0) {
+			if (!newProfile.github_token && !newProfile.op_service_account_token) {
 				yield* Console.error("Provide at least --github-token or --op-token.");
 				return;
 			}
 
-			profiles[profile] = newProfile;
-			data.profiles = profiles;
-			saveCredentialsFile(data);
+			const updatedCreds: Credentials = {
+				profiles: {
+					...creds.profiles,
+					[profile]: { github_token: newProfile.github_token ?? "", ...newProfile },
+				},
+			};
+			yield* credentialsFile.write(updatedCreds, join(configDir, CREDENTIALS_FILENAME));
 
 			yield* Console.log(`Created profile '${profile}'.`);
 		}),
@@ -74,15 +75,15 @@ const createCommand = Command.make(
 
 const listCredsCommand = Command.make("list", {}, () =>
 	Effect.gen(function* () {
-		const data = loadCredentialsFile();
-		const profiles = (data.profiles ?? {}) as Record<string, Record<string, string>>;
+		const credentialsFile = yield* RepoSyncCredentialsFile;
+		const creds = yield* loadCredentials(credentialsFile);
 
-		if (Object.keys(profiles).length === 0) {
+		if (Object.keys(creds.profiles).length === 0) {
 			yield* Console.log("No credential profiles configured.");
 			return;
 		}
 
-		for (const [name, profile] of Object.entries(profiles)) {
+		for (const [name, profile] of Object.entries(creds.profiles)) {
 			yield* Console.log(`[${name}]`);
 			if (profile.github_token) {
 				yield* Console.log(`  github_token: ${redactToken(profile.github_token)}`);
@@ -97,17 +98,22 @@ const listCredsCommand = Command.make("list", {}, () =>
 
 const deleteCommand = Command.make("delete", { profile: profileOption }, ({ profile }) =>
 	Effect.gen(function* () {
-		const data = loadCredentialsFile();
-		const profiles = (data.profiles ?? {}) as Record<string, unknown>;
+		const appDirs = yield* AppDirs;
+		const credentialsFile = yield* RepoSyncCredentialsFile;
+		const creds = yield* loadCredentials(credentialsFile);
 
-		if (!profiles[profile]) {
+		if (!creds.profiles[profile]) {
 			yield* Console.error(`Profile '${profile}' not found.`);
 			return;
 		}
 
-		delete profiles[profile];
-		data.profiles = profiles;
-		saveCredentialsFile(data);
+		const { [profile]: _, ...remainingProfiles } = creds.profiles;
+		const updatedCreds: Credentials = { profiles: remainingProfiles };
+		const configDir = yield* appDirs.config;
+		if (!existsSync(configDir)) {
+			mkdirSync(configDir, { recursive: true });
+		}
+		yield* credentialsFile.write(updatedCreds, join(configDir, CREDENTIALS_FILENAME));
 
 		yield* Console.log(`Deleted profile '${profile}'.`);
 	}),

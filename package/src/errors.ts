@@ -1,12 +1,5 @@
+/* v8 ignore start -- TaggedError class declarations, covered via errors.test.ts */
 import { Data } from "effect";
-
-export class ConfigError extends Data.TaggedError("ConfigError")<{
-	readonly message: string;
-}> {}
-
-export class CredentialsError extends Data.TaggedError("CredentialsError")<{
-	readonly message: string;
-}> {}
 
 export class ResolveError extends Data.TaggedError("ResolveError")<{
 	readonly message: string;
@@ -24,3 +17,4 @@ export class GitHubApiError extends Data.TaggedError("GitHubApiError")<{
 export class SyncError extends Data.TaggedError("SyncError")<{
 	readonly message: string;
 }> {}
+/* v8 ignore stop */

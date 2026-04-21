@@ -146,6 +146,7 @@ export const GRAPHQL_SETTINGS: Record<string, string> = {
 	has_pull_requests: "hasPullRequestsEnabled",
 };
 
+/* v8 ignore start -- live Octokit API calls, tested via GitHubClientTest recorder */
 export function GitHubClientLive(token: string): Layer.Layer<GitHubClient> {
 	return Layer.succeed(
 		GitHubClient,
@@ -525,6 +526,7 @@ export function GitHubClientLive(token: string): Layer.Layer<GitHubClient> {
 		})(),
 	);
 }
+/* v8 ignore stop */
 
 export interface RecordedCall {
 	method: string;

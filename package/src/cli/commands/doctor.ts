@@ -1,10 +1,9 @@
-import { existsSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { Command, Options } from "@effect/cli";
 import { Console, Effect } from "effect";
 import { parse } from "smol-toml";
-import { resolveConfigDir } from "../../lib/config-path.js";
-import { ConfigLoader } from "../../services/ConfigLoader.js";
+import { RepoSyncConfigFile, loadConfigWithDir } from "../../services/ConfigFiles.js";
 
 const configOption = Options.file("config").pipe(
 	Options.withDescription("Path to config directory or repo-sync.config.toml file"),
@@ -69,24 +68,23 @@ function levenshtein(a: string, b: string): number {
 
 export const doctorCommand = Command.make("doctor", { config: configOption }, ({ config }) =>
 	Effect.gen(function* () {
-		const configFlag = config._tag === "Some" ? config.value : undefined;
-		const configDir = resolveConfigDir({ configFlag });
+		const configFile = yield* RepoSyncConfigFile;
 
-		if (!configDir) {
+		// Use discover to find and validate config; also get the file path for raw parsing
+		const discoverResult = yield* Effect.either(loadConfigWithDir(configFile, config));
+
+		if (discoverResult._tag === "Left") {
 			yield* Console.error("No config found. Run 'repo-sync init' to create one.");
 			return;
 		}
 
+		const { configDir } = discoverResult.right;
 		const configPath = join(configDir, "repo-sync.config.toml");
-		if (!existsSync(configPath)) {
-			yield* Console.error(`Config file not found: ${configPath}`);
-			return;
-		}
 
-		const configToml = readFileSync(configPath, "utf-8");
-
+		// Raw TOML parsing for typo detection (schema validation strips unknown keys)
 		let raw: Record<string, unknown>;
 		try {
+			const configToml = readFileSync(configPath, "utf-8");
 			raw = parse(configToml);
 		} catch (err) {
 			yield* Console.error(`TOML parse error: ${err instanceof Error ? err.message : String(err)}`);
@@ -160,13 +158,8 @@ export const doctorCommand = Command.make("doctor", { config: configOption }, ({
 			}
 		}
 
-		const loader = yield* ConfigLoader;
-		const result = yield* Effect.either(loader.parseConfig(configToml));
-		if (result._tag === "Left") {
-			yield* Console.error(`Schema validation failed: ${result.left.message}`);
-		} else {
-			yield* Console.log("Schema validation: passed");
-		}
+		// Schema validation already passed via loadConfigWithDir
+		yield* Console.log("Schema validation: passed");
 
 		yield* Console.log("\nRequired fine-grained token permissions:");
 		yield* Console.log("  Repository permissions > Administration (Read and write) -- settings sync");

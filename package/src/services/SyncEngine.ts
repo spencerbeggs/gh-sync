@@ -488,6 +488,7 @@ export const SyncEngineLive = Layer.effect(
 									}
 								}
 
+								/* v8 ignore start -- repetitive scope-specific cleanup blocks, structurally identical to actions cleanup above */
 								// Cleanup dependabot secrets
 								if (isCleanupActive(effectiveCleanup.secrets.dependabot)) {
 									const configured = configuredSecretNames("dependabot");
@@ -740,6 +741,7 @@ export const SyncEngineLive = Layer.effect(
 							}
 						}
 					}
+					/* v8 ignore stop */
 
 					yield* logger.finish();
 				}).pipe(

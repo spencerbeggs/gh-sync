@@ -2,7 +2,7 @@ import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } fr
 import { join } from "node:path";
 import { Command, Options } from "@effect/cli";
 import { Console, Effect } from "effect";
-import { configDir } from "../../lib/xdg.js";
+import { AppDirs } from "xdg-effect";
 
 const projectOption = Options.boolean("project").pipe(
 	Options.withDescription("Create config in current directory instead of XDG/home location"),
@@ -82,7 +82,9 @@ const CONFIG_FILE = "repo-sync.config.toml";
 
 export const initCommand = Command.make("init", { project: projectOption }, ({ project }) =>
 	Effect.gen(function* () {
-		const targetDir = project ? process.cwd() : configDir();
+		const appDirs = yield* AppDirs;
+		const xdgConfigDir = yield* appDirs.config;
+		const targetDir = project ? process.cwd() : xdgConfigDir;
 
 		if (!existsSync(targetDir)) {
 			mkdirSync(targetDir, { recursive: true });
