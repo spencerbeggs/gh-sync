@@ -51,4 +51,4 @@ docs/superpowers
 # Local configuration and credentials files (keep them out of version control)
 reposets.config.toml
 reposets.credentials.toml
-tombi.tomlreposets.config.toml
+tombi.toml
