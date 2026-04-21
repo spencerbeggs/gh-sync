@@ -19,7 +19,6 @@ const KNOWN_CONFIG_KEYS = new Set([
 	"variables",
 	"rulesets",
 	"environments",
-	"cleanup",
 	"groups",
 ]);
 const KNOWN_GROUP_KEYS = new Set([
@@ -33,15 +32,9 @@ const KNOWN_GROUP_KEYS = new Set([
 	"environments",
 	"cleanup",
 ]);
-const KNOWN_CLEANUP_KEYS = new Set([
-	"secrets",
-	"variables",
-	"dependabot_secrets",
-	"codespaces_secrets",
-	"rulesets",
-	"environments",
-	"preserve",
-]);
+const KNOWN_CLEANUP_KEYS = new Set(["secrets", "variables", "rulesets", "environments"]);
+const KNOWN_CLEANUP_SECRETS_KEYS = new Set(["actions", "dependabot", "codespaces", "environments"]);
+const KNOWN_CLEANUP_VARIABLES_KEYS = new Set(["actions", "environments"]);
 
 function findClosestMatch(key: string, known: Set<string>): string | undefined {
 	let best: string | undefined;
@@ -127,14 +120,42 @@ export const doctorCommand = Command.make("doctor", { config: configOption }, ({
 			}
 		}
 
-		const cleanup = raw.cleanup;
-		if (cleanup && typeof cleanup === "object") {
-			for (const key of Object.keys(cleanup as Record<string, unknown>)) {
-				if (!KNOWN_CLEANUP_KEYS.has(key)) {
-					const suggestion = findClosestMatch(key, KNOWN_CLEANUP_KEYS);
-					const hint = suggestion ? ` -- did you mean '${suggestion}'?` : "";
-					yield* Console.log(`Warning: unknown key '${key}' in cleanup${hint}`);
-					warnings++;
+		if (groups && typeof groups === "object") {
+			for (const [groupName, group] of Object.entries(groups as Record<string, unknown>)) {
+				if (!group || typeof group !== "object") continue;
+				const cleanup = (group as Record<string, unknown>).cleanup;
+				if (!cleanup || typeof cleanup !== "object") continue;
+				const cleanupObj = cleanup as Record<string, unknown>;
+				const prefix = `groups.${groupName}.cleanup`;
+				for (const key of Object.keys(cleanupObj)) {
+					if (!KNOWN_CLEANUP_KEYS.has(key)) {
+						const suggestion = findClosestMatch(key, KNOWN_CLEANUP_KEYS);
+						const hint = suggestion ? ` -- did you mean '${suggestion}'?` : "";
+						yield* Console.log(`Warning: unknown key '${key}' in ${prefix}${hint}`);
+						warnings++;
+					}
+				}
+				const secrets = cleanupObj.secrets;
+				if (secrets && typeof secrets === "object") {
+					for (const key of Object.keys(secrets as Record<string, unknown>)) {
+						if (!KNOWN_CLEANUP_SECRETS_KEYS.has(key)) {
+							const suggestion = findClosestMatch(key, KNOWN_CLEANUP_SECRETS_KEYS);
+							const hint = suggestion ? ` -- did you mean '${suggestion}'?` : "";
+							yield* Console.log(`Warning: unknown key '${key}' in ${prefix}.secrets${hint}`);
+							warnings++;
+						}
+					}
+				}
+				const variables = cleanupObj.variables;
+				if (variables && typeof variables === "object") {
+					for (const key of Object.keys(variables as Record<string, unknown>)) {
+						if (!KNOWN_CLEANUP_VARIABLES_KEYS.has(key)) {
+							const suggestion = findClosestMatch(key, KNOWN_CLEANUP_VARIABLES_KEYS);
+							const hint = suggestion ? ` -- did you mean '${suggestion}'?` : "";
+							yield* Console.log(`Warning: unknown key '${key}' in ${prefix}.variables${hint}`);
+							warnings++;
+						}
+					}
 				}
 			}
 		}

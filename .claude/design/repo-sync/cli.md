@@ -72,8 +72,9 @@ Everything validate does, plus Levenshtein-based typo detection for
 unknown keys in the config. Reports suggestions like "unknown key
 'has_wikis' -- did you mean 'has_wiki'?"
 
-Checks top-level keys, repo group keys, and cleanup keys against known
-sets.
+Checks top-level keys, repo group keys, and per-group cleanup keys
+(including nested `cleanup.secrets` and `cleanup.variables` sub-keys)
+against known sets.
 
 ## init
 
