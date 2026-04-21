@@ -15,7 +15,7 @@ import { syncCommand } from "../../src/cli/commands/sync.js";
 import { validateCommand } from "../../src/cli/commands/validate.js";
 import { ConfigSchema } from "../../src/schemas/config.js";
 import { CredentialsSchema } from "../../src/schemas/credentials.js";
-import { RepoSyncConfigFile, RepoSyncCredentialsFile } from "../../src/services/ConfigFiles.js";
+import { ReposetsConfigFile, ReposetsCredentialsFile } from "../../src/services/ConfigFiles.js";
 
 // ---------------------------------------------------------------------------
 // Fixtures
@@ -184,7 +184,7 @@ function makeTestConfigLayer(configPath: string) {
 	return XdgConfigLive({
 		app: new AppDirsConfig({ namespace: "reposets", fallbackDir: Option.none(), dirs: Option.none() }),
 		config: {
-			tag: RepoSyncConfigFile,
+			tag: ReposetsConfigFile,
 			schema: ConfigSchema,
 			codec: TomlCodec,
 			strategy: FirstMatch,
@@ -195,7 +195,7 @@ function makeTestConfigLayer(configPath: string) {
 
 function makeTestCredentialsLayer(credentialsPath: string, configLayer: ReturnType<typeof makeTestConfigLayer>) {
 	return ConfigFile.Live({
-		tag: RepoSyncCredentialsFile,
+		tag: ReposetsCredentialsFile,
 		schema: CredentialsSchema,
 		codec: TomlCodec,
 		strategy: FirstMatch,
@@ -221,7 +221,7 @@ function makeAppDirsLayer(configDir: string) {
 			}),
 		}),
 		config: {
-			tag: RepoSyncConfigFile,
+			tag: ReposetsConfigFile,
 			schema: ConfigSchema,
 			codec: TomlCodec,
 			strategy: FirstMatch,
@@ -231,14 +231,14 @@ function makeAppDirsLayer(configDir: string) {
 }
 
 /**
- * Build a layer with AppDirs + RepoSyncCredentialsFile pointing at the given config dir.
+ * Build a layer with AppDirs + ReposetsCredentialsFile pointing at the given config dir.
  * Used for credentials command tests that need the credentials service.
  */
 function makeAppDirsWithCredsLayer(configDir: string) {
 	const credsPath = join(configDir, "reposets.credentials.toml");
 	const base = makeAppDirsLayer(configDir);
 	const credsLayer = ConfigFile.Live({
-		tag: RepoSyncCredentialsFile,
+		tag: ReposetsCredentialsFile,
 		schema: CredentialsSchema,
 		codec: TomlCodec,
 		strategy: FirstMatch,

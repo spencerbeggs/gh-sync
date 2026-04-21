@@ -1,7 +1,7 @@
 import { Command, Options } from "@effect/cli";
 import { Console, Effect, Layer } from "effect";
 import type { LogLevel } from "../../schemas/config.js";
-import { RepoSyncConfigFile, RepoSyncCredentialsFile, loadConfigWithDir } from "../../services/ConfigFiles.js";
+import { ReposetsConfigFile, ReposetsCredentialsFile, loadConfigWithDir } from "../../services/ConfigFiles.js";
 import { CredentialResolverLive } from "../../services/CredentialResolver.js";
 import { GitHubClientLive } from "../../services/GitHubClient.js";
 import { OnePasswordClientLive } from "../../services/OnePasswordClient.js";
@@ -47,10 +47,10 @@ export const syncCommand = Command.make(
 	},
 	({ config, group, repo, dryRun, noCleanup, logLevel: logLevelFlag }) =>
 		Effect.gen(function* () {
-			const configFile = yield* RepoSyncConfigFile;
+			const configFile = yield* ReposetsConfigFile;
 			const { config: parsedConfig, configDir } = yield* loadConfigWithDir(configFile, config);
 
-			const credentialsFile = yield* RepoSyncCredentialsFile;
+			const credentialsFile = yield* ReposetsCredentialsFile;
 			const credentials = yield* credentialsFile.loadOrDefault({ profiles: {} });
 
 			const profileNames = Object.keys(credentials.profiles);

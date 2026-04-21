@@ -21,14 +21,14 @@ import { CredentialsSchema } from "../schemas/credentials.js";
 const CONFIG_FILENAME = "reposets.config.toml";
 const CREDENTIALS_FILENAME = "reposets.credentials.toml";
 
-export const RepoSyncConfigFile = ConfigFile.Tag<Config>("reposets/Config");
+export const ReposetsConfigFile = ConfigFile.Tag<Config>("reposets/Config");
 
-export const RepoSyncCredentialsFile = ConfigFile.Tag<Credentials>("reposets/Credentials");
+export const ReposetsCredentialsFile = ConfigFile.Tag<Credentials>("reposets/Credentials");
 
 const xdgLayer = XdgConfigLive({
 	app: new AppDirsConfig({ namespace: "reposets" }),
 	config: {
-		tag: RepoSyncConfigFile,
+		tag: ReposetsConfigFile,
 		schema: ConfigSchema,
 		codec: TomlCodec,
 		strategy: FirstMatch,
@@ -37,7 +37,7 @@ const xdgLayer = XdgConfigLive({
 });
 
 const credentialsLayer = ConfigFile.Live({
-	tag: RepoSyncCredentialsFile,
+	tag: ReposetsCredentialsFile,
 	schema: CredentialsSchema,
 	codec: TomlCodec,
 	strategy: FirstMatch,

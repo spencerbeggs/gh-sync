@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { Command, Options } from "@effect/cli";
 import { Console, Effect } from "effect";
 import { parse } from "smol-toml";
-import { RepoSyncConfigFile, loadConfigWithDir } from "../../services/ConfigFiles.js";
+import { ReposetsConfigFile, loadConfigWithDir } from "../../services/ConfigFiles.js";
 
 const configOption = Options.file("config").pipe(
 	Options.withDescription("Path to config directory or reposets.config.toml file"),
@@ -68,7 +68,7 @@ function levenshtein(a: string, b: string): number {
 
 export const doctorCommand = Command.make("doctor", { config: configOption }, ({ config }) =>
 	Effect.gen(function* () {
-		const configFile = yield* RepoSyncConfigFile;
+		const configFile = yield* ReposetsConfigFile;
 
 		// Use discover to find and validate config; also get the file path for raw parsing
 		const discoverResult = yield* Effect.either(loadConfigWithDir(configFile, config));
