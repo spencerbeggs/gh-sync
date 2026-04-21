@@ -1,9 +1,6 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import { Command, Options } from "@effect/cli";
 import { Console, Effect } from "effect";
-import { resolveConfigDir } from "../../lib/config-path.js";
-import { ConfigLoader } from "../../services/ConfigLoader.js";
+import { RepoSyncConfigFile, loadConfigWithDir } from "../../services/ConfigFiles.js";
 
 const configOption = Options.file("config").pipe(
 	Options.withDescription("Path to config directory or repo-sync.config.toml file"),
@@ -12,17 +9,8 @@ const configOption = Options.file("config").pipe(
 
 export const listCommand = Command.make("list", { config: configOption }, ({ config }) =>
 	Effect.gen(function* () {
-		const configFlag = config._tag === "Some" ? config.value : undefined;
-		const configDir = resolveConfigDir({ configFlag });
-
-		if (!configDir) {
-			yield* Console.error("No config found. Run 'repo-sync init' to create one.");
-			return;
-		}
-
-		const configToml = readFileSync(join(configDir, "repo-sync.config.toml"), "utf-8");
-		const loader = yield* ConfigLoader;
-		const parsedConfig = yield* loader.parseConfig(configToml);
+		const configFile = yield* RepoSyncConfigFile;
+		const { config: parsedConfig } = yield* loadConfigWithDir(configFile, config);
 
 		const defaultOwner = parsedConfig.owner ?? "(not set)";
 		yield* Console.log(`Default owner: ${defaultOwner}\n`);

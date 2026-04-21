@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { Command, Options } from "@effect/cli";
 import { Console, Effect } from "effect";
 import { parse, stringify } from "smol-toml";
-import { configDir } from "../../lib/xdg.js";
+import { AppDirs } from "xdg-effect";
 
 const profileOption = Options.text("profile").pipe(Options.withDescription("Credential profile name"));
 
@@ -17,20 +17,20 @@ const opTokenOption = Options.text("op-token").pipe(
 	Options.optional,
 );
 
-function getCredentialsPath(): string {
-	return join(configDir(), "repo-sync.credentials.toml");
+function getCredentialsPath(configDir: string): string {
+	return join(configDir, "repo-sync.credentials.toml");
 }
 
-function loadCredentialsFile(): Record<string, unknown> {
-	const path = getCredentialsPath();
+function loadCredentialsFile(configDir: string): Record<string, unknown> {
+	const path = getCredentialsPath(configDir);
 	if (!existsSync(path)) return {};
 	const content = readFileSync(path, "utf-8");
 	if (content.trim() === "") return {};
 	return parse(content);
 }
 
-function saveCredentialsFile(data: Record<string, unknown>): void {
-	writeFileSync(getCredentialsPath(), stringify(data));
+function saveCredentialsFile(configDir: string, data: Record<string, unknown>): void {
+	writeFileSync(getCredentialsPath(configDir), stringify(data));
 }
 
 function redactToken(token: string): string {
@@ -43,7 +43,9 @@ const createCommand = Command.make(
 	{ profile: profileOption, githubToken: githubTokenOption, opToken: opTokenOption },
 	({ profile, githubToken, opToken }) =>
 		Effect.gen(function* () {
-			const data = loadCredentialsFile();
+			const appDirs = yield* AppDirs;
+			const configDir = yield* appDirs.config;
+			const data = loadCredentialsFile(configDir);
 			const profiles = (data.profiles ?? {}) as Record<string, unknown>;
 
 			if (profiles[profile]) {
@@ -66,7 +68,7 @@ const createCommand = Command.make(
 
 			profiles[profile] = newProfile;
 			data.profiles = profiles;
-			saveCredentialsFile(data);
+			saveCredentialsFile(configDir, data);
 
 			yield* Console.log(`Created profile '${profile}'.`);
 		}),
@@ -74,7 +76,9 @@ const createCommand = Command.make(
 
 const listCredsCommand = Command.make("list", {}, () =>
 	Effect.gen(function* () {
-		const data = loadCredentialsFile();
+		const appDirs = yield* AppDirs;
+		const configDir = yield* appDirs.config;
+		const data = loadCredentialsFile(configDir);
 		const profiles = (data.profiles ?? {}) as Record<string, Record<string, string>>;
 
 		if (Object.keys(profiles).length === 0) {
@@ -97,7 +101,9 @@ const listCredsCommand = Command.make("list", {}, () =>
 
 const deleteCommand = Command.make("delete", { profile: profileOption }, ({ profile }) =>
 	Effect.gen(function* () {
-		const data = loadCredentialsFile();
+		const appDirs = yield* AppDirs;
+		const configDir = yield* appDirs.config;
+		const data = loadCredentialsFile(configDir);
 		const profiles = (data.profiles ?? {}) as Record<string, unknown>;
 
 		if (!profiles[profile]) {
@@ -107,7 +113,7 @@ const deleteCommand = Command.make("delete", { profile: profileOption }, ({ prof
 
 		delete profiles[profile];
 		data.profiles = profiles;
-		saveCredentialsFile(data);
+		saveCredentialsFile(configDir, data);
 
 		yield* Console.log(`Deleted profile '${profile}'.`);
 	}),

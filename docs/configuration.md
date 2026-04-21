@@ -17,7 +17,7 @@ Resolution order (first match wins):
 2. Walk up from current directory looking for `repo-sync.config.toml`
 3. XDG fallback: `~/.config/repo-sync/repo-sync.config.toml` (respects `$XDG_CONFIG_HOME`)
 
-File references in `file`-kind groups resolve relative to the directory containing `repo-sync.config.toml`.
+File paths in `file`-kind secret and variable groups resolve relative to the directory containing `repo-sync.config.toml`, not the current working directory. For example, if your config is at `~/.config/repo-sync/repo-sync.config.toml` and a secret references `./private/NPM_TOKEN`, the file is read from `~/.config/repo-sync/private/NPM_TOKEN`.
 
 ## Top-Level Keys
 
@@ -53,6 +53,12 @@ allow_squash_merge = true
 allow_merge_commit = false
 allow_rebase_merge = false
 ```
+
+### Pass-through fields
+
+Settings groups accept any additional fields beyond the typed ones listed above. Unknown fields are forwarded directly to the GitHub repository update API. This means new GitHub API fields work immediately without waiting for a repo-sync update.
+
+Be careful with pass-through fields -- typos are silently forwarded to the API. Use `repo-sync doctor` to detect unknown keys.
 
 ## Groups
 
@@ -117,6 +123,9 @@ API_KEY = "MY_API_KEY"
 NODE_ENV = "production"
 DO_NOT_TRACK = "1"
 
+[variables.bot.value]
+BOT_NAME = "mybot[bot]"
+
 [rulesets.branch-protection]
 name = "branch-protection"
 type = "branch"
@@ -140,7 +149,7 @@ repos = ["repo-one", "repo-two"]
 settings = ["default"]
 environments = ["staging", "production"]
 secrets = { actions = ["deploy", "api"], dependabot = ["deploy"], environments = { production = ["api"] } }
-variables = { actions = ["turbo"], environments = { staging = ["turbo"] } }
+variables = { actions = ["turbo", "bot"], environments = { staging = ["turbo"] } }
 rulesets = ["branch-protection"]
 cleanup = {
   rulesets = true,

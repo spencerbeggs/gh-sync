@@ -84,6 +84,9 @@ importers:
       tweetnacl:
         specifier: ^1.0.3
         version: 1.0.3
+      xdg-effect:
+        specifier: ^0.1.0
+        version: 0.1.0(03f80dd67552833d8eca5052e274b981)
     devDependencies:
       '@savvy-web/rslib-builder':
         specifier: ^0.20.1
@@ -4284,6 +4287,22 @@ packages:
       bufferutil:
         optional: true
       utf-8-validate:
+        optional: true
+
+  xdg-effect@0.1.0:
+    resolution: {integrity: sha512-NWGq0bLHac5HYcxqHvChW/RnEs6EWIgpHC8BS5nZkvCSrCPyo265QAB0bXx3stTnvLsIVRW2dMmKiGOSDTd03A==}
+    peerDependencies:
+      '@effect/platform': '>=0.96.0'
+      '@effect/platform-node': '>=0.106.0'
+      '@effect/sql': '>=0.51.0'
+      '@effect/sql-sqlite-node': '>=0.52.0'
+      effect: '>=3.21.0'
+    peerDependenciesMeta:
+      '@effect/platform-node':
+        optional: true
+      '@effect/sql':
+        optional: true
+      '@effect/sql-sqlite-node':
         optional: true
 
   y18n@5.0.8:
@@ -8914,6 +8933,16 @@ snapshots:
       write-file-atomic: 5.0.1
 
   ws@8.20.0: {}
+
+  xdg-effect@0.1.0(03f80dd67552833d8eca5052e274b981):
+    dependencies:
+      '@effect/platform': 0.96.0(effect@3.21.1)
+      effect: 3.21.1
+      smol-toml: 1.6.1
+    optionalDependencies:
+      '@effect/platform-node': 0.106.0(@effect/cluster@0.58.1(@effect/platform@0.96.0(effect@3.21.1))(@effect/rpc@0.75.0(@effect/platform@0.96.0(effect@3.21.1))(effect@3.21.1))(@effect/sql@0.51.0(@effect/experimental@0.60.0(@effect/platform@0.96.0(effect@3.21.1))(effect@3.21.1))(@effect/platform@0.96.0(effect@3.21.1))(effect@3.21.1))(@effect/workflow@0.18.0(@effect/experimental@0.60.0(@effect/platform@0.96.0(effect@3.21.1))(effect@3.21.1))(@effect/platform@0.96.0(effect@3.21.1))(@effect/rpc@0.75.0(@effect/platform@0.96.0(effect@3.21.1))(effect@3.21.1))(effect@3.21.1))(effect@3.21.1))(@effect/platform@0.96.0(effect@3.21.1))(@effect/rpc@0.75.0(@effect/platform@0.96.0(effect@3.21.1))(effect@3.21.1))(@effect/sql@0.51.0(@effect/experimental@0.60.0(@effect/platform@0.96.0(effect@3.21.1))(effect@3.21.1))(@effect/platform@0.96.0(effect@3.21.1))(effect@3.21.1))(effect@3.21.1)
+      '@effect/sql': 0.51.0(@effect/experimental@0.60.0(@effect/platform@0.96.0(effect@3.21.1))(effect@3.21.1))(@effect/platform@0.96.0(effect@3.21.1))(effect@3.21.1)
+      '@effect/sql-sqlite-node': 0.52.0(@effect/experimental@0.60.0(@effect/platform@0.96.0(effect@3.21.1))(effect@3.21.1))(@effect/platform@0.96.0(effect@3.21.1))(@effect/sql@0.51.0(@effect/experimental@0.60.0(@effect/platform@0.96.0(effect@3.21.1))(effect@3.21.1))(@effect/platform@0.96.0(effect@3.21.1))(effect@3.21.1))(effect@3.21.1)
 
   y18n@5.0.8: {}
 

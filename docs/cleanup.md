@@ -30,6 +30,8 @@ Cleanup is organized into nested scopes:
   environments:   CleanupScope
 ```
 
+**Important:** Org-level rulesets (those with `source_type !== "Repository"`) are never deleted by cleanup. Cleanup only removes repo-level rulesets.
+
 ## Examples
 
 Delete all undeclared Actions secrets:
@@ -69,10 +71,13 @@ cleanup = {
 
 ## Dry Run and Skip
 
-Use `repo-sync sync --dry-run` to preview what would be deleted before applying. Use `repo-sync sync --no-cleanup` to skip cleanup entirely during a sync.
+Use `repo-sync sync --dry-run` to preview what would be deleted before applying. In dry-run mode, cleanup logs every resource it would delete without actually deleting anything. This is the safest way to verify your cleanup config before enabling it.
+
+Use `repo-sync sync --no-cleanup` to skip cleanup entirely during a sync.
 
 ## Notes
 
 - Org-level rulesets (those with `source_type !== "Repository"`) are never deleted by cleanup. Cleanup only removes repo-level rulesets.
+- Cleanup operates at the scope level (actions, dependabot, etc.), not at the individual resource level. You cannot selectively enable cleanup for one secret but not another within the same scope. Use `preserve` lists to protect specific resources from deletion.
 - Cleanup runs per-group, not globally. Different groups can have different cleanup policies.
-- Newly synced resources are never deleted — cleanup compares against the declared config after sync completes.
+- Newly synced resources are never deleted -- cleanup compares against the declared config after sync completes.

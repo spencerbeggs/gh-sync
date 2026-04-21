@@ -10,6 +10,7 @@ export class OnePasswordClient extends Context.Tag("OnePasswordClient")<
 	OnePasswordClientService
 >() {}
 
+/* v8 ignore start -- live 1Password SDK calls, tested via OnePasswordClientTest */
 export const OnePasswordClientLive = Layer.succeed(OnePasswordClient, {
 	resolve(reference: string, serviceAccountToken: string) {
 		return Effect.tryPromise({
@@ -29,6 +30,7 @@ export const OnePasswordClientLive = Layer.succeed(OnePasswordClient, {
 		});
 	},
 });
+/* v8 ignore stop */
 
 export function OnePasswordClientTest(stubs: Record<string, string>): Layer.Layer<OnePasswordClient> {
 	return Layer.succeed(OnePasswordClient, {

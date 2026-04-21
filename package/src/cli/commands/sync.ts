@@ -1,10 +1,7 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import { Command, Options } from "@effect/cli";
 import { Console, Effect, Layer } from "effect";
-import { resolveConfigDir } from "../../lib/config-path.js";
 import type { LogLevel } from "../../schemas/config.js";
-import { ConfigLoader } from "../../services/ConfigLoader.js";
+import { RepoSyncConfigFile, RepoSyncCredentialsFile, loadConfigWithDir } from "../../services/ConfigFiles.js";
 import { CredentialResolverLive } from "../../services/CredentialResolver.js";
 import { GitHubClientLive } from "../../services/GitHubClient.js";
 import { OnePasswordClientLive } from "../../services/OnePasswordClient.js";
@@ -50,26 +47,15 @@ export const syncCommand = Command.make(
 	},
 	({ config, group, repo, dryRun, noCleanup, logLevel: logLevelFlag }) =>
 		Effect.gen(function* () {
-			const configFlag = config._tag === "Some" ? config.value : undefined;
-			const configDir = resolveConfigDir({ configFlag });
+			const configFile = yield* RepoSyncConfigFile;
+			const { config: parsedConfig, configDir } = yield* loadConfigWithDir(configFile, config);
 
-			if (!configDir) {
-				yield* Console.error("No config found. Run 'repo-sync init' to create one.");
-				return;
-			}
-
-			const configToml = readFileSync(join(configDir, "repo-sync.config.toml"), "utf-8");
-
-			let credsToml = "";
-			try {
-				credsToml = readFileSync(join(configDir, "repo-sync.credentials.toml"), "utf-8");
-			} catch {
-				// credentials file is optional
-			}
-
-			const loader = yield* ConfigLoader;
-			const parsedConfig = yield* loader.parseConfig(configToml);
-			const credentials = yield* loader.parseCredentials(credsToml);
+			const credentialsFile = yield* RepoSyncCredentialsFile;
+			const credsResult = yield* Effect.either(credentialsFile.load);
+			const credentials =
+				credsResult._tag === "Right"
+					? credsResult.right
+					: { profiles: {} as Record<string, { github_token: string; op_service_account_token?: string }> };
 
 			const profileNames = Object.keys(credentials.profiles);
 			const defaultProfile = profileNames.length === 1 ? profileNames[0] : undefined;

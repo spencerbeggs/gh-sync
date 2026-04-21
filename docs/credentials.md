@@ -8,6 +8,12 @@ repo-sync stores credentials in a separate file from your main config so that to
 
 Running `repo-sync init` creates the file and automatically adds a `.gitignore` entry for it. Keep `repo-sync.credentials.toml` out of version control — never commit tokens to git.
 
+### Credential file locations
+
+The credentials file is stored in the XDG config directory by default (`~/.config/repo-sync/repo-sync.credentials.toml`, or `~/.repo-sync/repo-sync.credentials.toml` if `XDG_CONFIG_HOME` is not set).
+
+The `repo-sync credentials` subcommands always read and write from the XDG location. The `sync` and `validate` commands also check for a credentials file alongside the config file when `--config` points to a specific directory, falling back to XDG if none is found there.
+
 ## Profile Structure
 
 Each profile is a `[profiles.<name>]` table. The required field is `github_token`. The optional `op_service_account_token` field enables 1Password resolution for that profile.
@@ -44,7 +50,7 @@ credentials = "personal"
 
 ## Resolve Sections
 
-`[profiles.<name>.resolve]` defines named labels that can be referenced at sync time. There are three sub-groups: `value`, `file`, and `op`. All three contribute to a flat namespace, so labels must be unique across all sub-groups within a profile.
+`[profiles.<name>.resolve]` defines named labels that can be referenced at sync time. There are three sub-groups: `value`, `file`, and `op`. All three can be used simultaneously within the same profile. They contribute to a flat namespace, so labels must be unique across all sub-groups within a profile.
 
 ### Value
 
@@ -58,7 +64,7 @@ REGISTRIES = { npm = "https://registry.npmjs.org" }
 
 ### File
 
-`[profiles.<name>.resolve.file]` reads values from disk. Paths are relative to the directory containing `repo-sync.credentials.toml`:
+`[profiles.<name>.resolve.file]` reads values from disk. Paths are relative to the directory containing `repo-sync.credentials.toml` (not the config file or the current working directory):
 
 ```toml
 [profiles.personal.resolve.file]

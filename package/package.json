@@ -2,7 +2,22 @@
 	"name": "repo-sync",
 	"version": "0.0.0",
 	"description": "CLI tool to sync GitHub repo settings, secrets and rulesets across personal repositories",
-	"keywords": ["github", "sync", "cli", "secrets", "rulesets"],
+	"keywords": [
+		"github",
+		"sync",
+		"cli",
+		"secrets",
+		"rulesets",
+		"variables",
+		"environments",
+		"toml",
+		"effect",
+		"xdg",
+		"repository",
+		"settings",
+		"automation",
+		"devops"
+	],
 	"homepage": "https://github.com/spencerbeggs/repo-sync#readme",
 	"bugs": {
 		"url": "https://github.com/spencerbeggs/repo-sync/issues"
@@ -42,7 +57,8 @@
 		"blakejs": "^1.2.1",
 		"effect": "^3.21.1",
 		"smol-toml": ">=1.6.1",
-		"tweetnacl": "^1.0.3"
+		"tweetnacl": "^1.0.3",
+		"xdg-effect": "^0.1.0"
 	},
 	"devDependencies": {
 		"@savvy-web/rslib-builder": "^0.20.1",
