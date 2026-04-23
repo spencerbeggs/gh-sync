@@ -158,11 +158,12 @@ undeclared), or `{ preserve = [...] }`.
 #### JSON Schema
 
 Run `pnpm --filter reposets generate:json-schema` to regenerate
-`package/schemas/`. The generation pipeline uses `xdg-effect` v0.3.1's
-`JsonSchemaExporter` service with `tombi()` helper for TOML language
-server annotations (`x-tombi-*`, `x-taplo`). Each schema includes a
-`$id` pointing to SchemaStore URLs. Ajv validates generated schemas in
-strict mode before writing. Script location:
+`package/schemas/`. The generation pipeline uses `xdg-effect` v0.3.3's
+`JsonSchemaExporter` and `JsonSchemaValidator` services with `tombi()`
+and `taplo()` helpers for TOML language server annotations. Each schema
+includes a `$id` pointing to the raw GitHub hosting URL.
+`JsonSchemaValidator` validates in strict mode (Ajv strict + annotation
+placement checks) before writing. Script location:
 `package/lib/scripts/generate-json-schema.ts`.
 
 #### Fine-Grained Token Permissions
