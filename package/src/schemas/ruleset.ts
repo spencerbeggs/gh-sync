@@ -518,12 +518,9 @@ export const RulesetSchema = Schema.Union(BranchRulesetSchema, TagRulesetSchema)
 	identifier: "Ruleset",
 	title: "Repository ruleset",
 	description: "A set of rules to apply when specified conditions are met",
-	jsonSchema: {
-		...tombi({ tableKeysOrder: "schema" }),
-		...taplo({
-			links: { key: "https://github.com/spencerbeggs/reposets/blob/main/docs/rulesets.md" },
-		}),
-	},
+	jsonSchema: taplo({
+		links: { key: "https://github.com/spencerbeggs/reposets/blob/main/docs/rulesets.md" },
+	}),
 });
 
 export type Ruleset = typeof RulesetSchema.Type;

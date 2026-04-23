@@ -274,20 +274,22 @@ labels referenced by config templates.
 ## JSON Schema Generation
 
 Effect Schema definitions generate JSON schemas via `JsonSchemaExporter`
-from xdg-effect (v0.3.1). The generation script
-(`package/lib/scripts/generate-json-schema.ts`):
+from xdg-effect (v0.3.3). The generation script
+(`package/lib/scripts/generate-json-schema.ts`) uses the standard
+`generateMany` -> `validateMany` -> `writeMany` pipeline:
 
 1. Calls `JsonSchemaExporter.generateMany()` with schema definitions,
-   root def names, and SchemaStore `$id` URLs
-2. Runs Ajv strict-mode validation on the generated schemas with all
-   custom extension keywords registered (`x-tombi-*`, `x-taplo`)
+   root def names, and `$id` URLs
+2. Calls `JsonSchemaValidator.validateMany()` for strict-mode validation
+   (custom extension keywords `x-tombi-*`, `x-taplo` are handled
+   internally by the validator service)
 3. Writes output via `JsonSchemaExporter.writeMany()` to
    `package/schemas/` (only writes when content changed)
 
-SchemaStore `$id` values:
+`$id` values (externally hosted on GitHub):
 
-- Config: `https://json.schemastore.org/reposets.config.json`
-- Credentials: `https://json.schemastore.org/reposets.credentials.json`
+- Config: `https://raw.githubusercontent.com/spencerbeggs/reposets/main/package/schemas/reposets.config.schema.json`
+- Credentials: `https://raw.githubusercontent.com/spencerbeggs/reposets/main/package/schemas/reposets.credentials.schema.json`
 
 ### Schema Annotations
 
@@ -319,7 +321,5 @@ for those positions. Three files use `Jsonifiable`: `common.ts`
 
 ### Dependencies
 
-- `xdg-effect` (^0.3.1) -- `JsonSchemaExporter`, `Jsonifiable`,
-  `tombi()`, `taplo()` helpers
-- `ajv` (^8.18.0, devDependency) -- strict-mode schema validation
-  during generation
+- `xdg-effect` (^0.3.3) -- `JsonSchemaExporter`, `JsonSchemaValidator`,
+  `Jsonifiable`, `tombi()`, `taplo()` helpers
