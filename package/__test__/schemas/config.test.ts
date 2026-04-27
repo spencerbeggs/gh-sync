@@ -315,6 +315,21 @@ describe("SecurityGroupSchema", () => {
 		const result = decodeSecurityGroup({});
 		expect(result.vulnerability_alerts).toBeUndefined();
 	});
+
+	it("accepts automated_security_fixes = true with vulnerability_alerts omitted (leave-alone semantic)", () => {
+		const result = decodeSecurityGroup({ automated_security_fixes: true });
+		expect(result.automated_security_fixes).toBe(true);
+		expect(result.vulnerability_alerts).toBeUndefined();
+	});
+
+	it("rejects automated_security_fixes = true with vulnerability_alerts = false (explicit contradiction)", () => {
+		expect(() =>
+			decodeSecurityGroup({
+				automated_security_fixes: true,
+				vulnerability_alerts: false,
+			}),
+		).toThrow(/automated_security_fixes/);
+	});
 });
 
 describe("CodeScanningLanguageSchema", () => {
@@ -373,6 +388,16 @@ describe("CodeScanningGroupSchema", () => {
 
 	it("rejects unsupported query suite", () => {
 		expect(() => decodeCodeScanningGroup({ query_suite: "minimal" })).toThrow();
+	});
+
+	it('rejects runner_type = "labeled" without runner_label', () => {
+		expect(() => decodeCodeScanningGroup({ runner_type: "labeled" })).toThrow(/runner_label is required/);
+	});
+
+	it('accepts runner_type = "standard" without runner_label', () => {
+		const result = decodeCodeScanningGroup({ runner_type: "standard" });
+		expect(result.runner_type).toBe("standard");
+		expect(result.runner_label).toBeUndefined();
 	});
 });
 

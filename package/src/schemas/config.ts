@@ -418,18 +418,26 @@ export const SecurityGroupSchema = Schema.Struct({
 				"Enable the private vulnerability reporting inbox (PUT/DELETE /repos/{o}/{r}/private-vulnerability-reporting).",
 		}),
 	),
-}).annotations({
-	identifier: "SecurityGroup",
-	title: "Security group",
-	description:
-		"Toggles for repository-level security features that have dedicated PUT/DELETE endpoints (vulnerability alerts, automated security fixes, private vulnerability reporting). Omitted keys are left untouched.",
-	jsonSchema: {
-		...tombi({ tableKeysOrder: "schema" }),
-		...taplo({
-			links: { key: "https://github.com/spencerbeggs/reposets/blob/main/docs/configuration.md" },
+})
+	.pipe(
+		Schema.filter((group) => !(group.automated_security_fixes === true && group.vulnerability_alerts === false), {
+			identifier: "SecurityGroup",
+			message: () =>
+				"automated_security_fixes = true requires vulnerability_alerts to be enabled (or omitted to leave the existing setting in place)",
 		}),
-	},
-});
+	)
+	.annotations({
+		identifier: "SecurityGroup",
+		title: "Security group",
+		description:
+			"Toggles for repository-level security features that have dedicated PUT/DELETE endpoints (vulnerability alerts, automated security fixes, private vulnerability reporting). Omitted keys are left untouched.",
+		jsonSchema: {
+			...tombi({ tableKeysOrder: "schema" }),
+			...taplo({
+				links: { key: "https://github.com/spencerbeggs/reposets/blob/main/docs/configuration.md" },
+			}),
+		},
+	});
 
 export type SecurityGroup = typeof SecurityGroupSchema.Type;
 
@@ -494,18 +502,25 @@ export const CodeScanningGroupSchema = Schema.Struct({
 			description: 'Self-hosted runner label. Required when runner_type = "labeled".',
 		}),
 	),
-}).annotations({
-	identifier: "CodeScanningGroup",
-	title: "Code scanning group",
-	description:
-		"CodeQL default setup configuration applied via PATCH /repos/{o}/{r}/code-scanning/default-setup. The endpoint returns 202 Accepted and configures asynchronously; reposets sends the request and does not poll for completion.",
-	jsonSchema: {
-		...tombi({ tableKeysOrder: "schema" }),
-		...taplo({
-			links: { key: "https://github.com/spencerbeggs/reposets/blob/main/docs/configuration.md" },
+})
+	.pipe(
+		Schema.filter((group) => group.runner_type !== "labeled" || group.runner_label !== undefined, {
+			identifier: "CodeScanningGroup",
+			message: () => 'runner_label is required when runner_type = "labeled"',
 		}),
-	},
-});
+	)
+	.annotations({
+		identifier: "CodeScanningGroup",
+		title: "Code scanning group",
+		description:
+			"CodeQL default setup configuration applied via PATCH /repos/{o}/{r}/code-scanning/default-setup. The endpoint returns 202 Accepted and configures asynchronously; reposets sends the request and does not poll for completion.",
+		jsonSchema: {
+			...tombi({ tableKeysOrder: "schema" }),
+			...taplo({
+				links: { key: "https://github.com/spencerbeggs/reposets/blob/main/docs/configuration.md" },
+			}),
+		},
+	});
 
 export type CodeScanningGroup = typeof CodeScanningGroupSchema.Type;
 
