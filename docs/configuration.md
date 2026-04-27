@@ -40,7 +40,7 @@ File paths in `file`-kind secret and variable groups resolve relative to the dir
 
 **Cleanup:** `delete_branch_on_merge`
 
-**Security:** `web_commit_signoff_required`
+**Commit signing:** `web_commit_signoff_required`
 
 **Advanced security (nested):** `security_and_analysis` (see [Security and Analysis](#security-and-analysis-nested-block) below)
 
@@ -215,6 +215,8 @@ The schemas also include annotations for two TOML-specific language servers:
 - [Taplo](https://taplo.tamasfe.dev/) -- `x-taplo` annotations for documentation links and key scaffolding via `initKeys`
 
 If you use Tombi or Taplo as your TOML language server, you get richer editor integration including contextual documentation links that point to the relevant section of this documentation.
+
+Field-level descriptions in the schema include the same `(GHAS-licensed)` and `(org-only)` annotations used in this documentation, so editors that surface schema descriptions on hover (VS Code, IntelliJ, Neovim with a TOML LSP) show the licensing and ownership requirements for each field as you write the config.
 
 ## Complete Example
 

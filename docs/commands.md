@@ -74,7 +74,7 @@ group 'my-projects': unknown environment 'nonexistent'
 
 ## doctor
 
-Deep config diagnostics. Runs everything `validate` does, plus Levenshtein-based typo detection for unknown keys at the top level, inside `[groups.*]` sections, and inside `[cleanup]`. This includes typo detection within `[groups.*.cleanup]` sections and their `secrets` and `variables` sub-keys. Reports suggestions such as `unknown key 'has_wikis' -- did you mean 'has_wiki'?`. Also displays the required fine-grained token permissions.
+Deep config diagnostics. Runs everything `validate` does, plus Levenshtein-based typo detection for unknown keys at the top level (now including `security` and `code_scanning`), inside `[groups.*]` sections (also including `security` and `code_scanning`), and inside `[cleanup]`. This includes typo detection within `[groups.*.cleanup]` sections and their `secrets` and `variables` sub-keys. Reports suggestions such as `unknown key 'has_wikis' -- did you mean 'has_wiki'?`. Also displays the required fine-grained token permissions; the printed list now includes Code scanning alerts, Dependabot alerts, Secret scanning alerts, and Organization > Members for advanced security and team-slug resolution.
 
 | Flag | Type | Default | Description |
 | :--- | :--- | :------ | :---------- |
