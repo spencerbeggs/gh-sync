@@ -42,7 +42,7 @@ reposets sync --config ./my-config/
 
 ## list
 
-Show a config summary. Displays repo groups with their referenced settings, environments, secrets (by scope), variables, rulesets, and credential profile name.
+Show a config summary. Displays repo groups with their referenced settings, environments, secrets (by scope), variables, rulesets, security groups, code scanning groups, and credential profile name.
 
 | Flag | Type | Default | Description |
 | :--- | :--- | :------ | :---------- |
@@ -54,7 +54,7 @@ reposets list
 
 ## validate
 
-Validate `reposets.config.toml` against its schema without making any API calls. Checks schema compliance and reference integrity: verifies that referenced settings, secret, variable, and ruleset groups exist; that file paths in `file`-kind secret and variable groups exist on disk; that credential profiles referenced by groups exist in `reposets.credentials.toml`; that groups referencing environments point to environments that are actually defined; and that environment-scoped secret and variable group references are valid.
+Validate `reposets.config.toml` against its schema without making any API calls. Checks schema compliance and reference integrity: verifies that referenced settings, secret, variable, ruleset, security, and code scanning groups exist; that file paths in `file`-kind secret and variable groups exist on disk; that credential profiles referenced by groups exist in `reposets.credentials.toml`; that groups referencing environments point to environments that are actually defined; and that environment-scoped secret and variable group references are valid. Also enforces cross-field constraints inside `[security.*]` and `[code_scanning.*]` groups -- see [Configuration](./configuration.md#validation) for details.
 
 | Flag | Type | Default | Description |
 | :--- | :--- | :------ | :---------- |
@@ -64,7 +64,7 @@ Validate `reposets.config.toml` against its schema without making any API calls.
 reposets validate
 ```
 
-Cross-reference validation (settings, secrets, variables, rulesets, environments) runs automatically during config loading via the `validateConfigRefs` callback. If references are invalid, the error is reported as a config validation failure:
+Cross-reference validation (settings, secrets, variables, rulesets, environments, security, code scanning) runs automatically during config loading via the `validateConfigRefs` callback. If references are invalid, the error is reported as a config validation failure:
 
 ```text
 $ reposets validate

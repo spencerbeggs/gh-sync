@@ -68,6 +68,8 @@ Settings groups accept a nested `security_and_analysis` block that is folded int
 
 | Field | Notes |
 | :---- | :---- |
+| `advanced_security` | (GHAS-licensed) Master toggle for GitHub Advanced Security features on the repository. |
+| `code_security` | (GHAS-licensed) Toggle GitHub Code Security functionality. |
 | `secret_scanning` | Detect committed credentials and sensitive data. |
 | `secret_scanning_push_protection` | Block git pushes containing detected secrets. |
 | `secret_scanning_ai_detection` | (GHAS-licensed) AI-powered detection of generic secrets. |
@@ -127,6 +129,19 @@ private_vulnerability_reporting = true
 
 Reference security groups from a repo group via the `security` array (see [Groups](#groups)).
 
+### Validation
+
+The schema rejects `automated_security_fixes = true` paired with `vulnerability_alerts = false` in the same group at config-load time (so `reposets validate` fails before any sync runs):
+
+```text
+automated_security_fixes = true requires vulnerability_alerts to be enabled
+(or omitted to leave the existing setting in place)
+```
+
+Omitting `vulnerability_alerts` entirely is permitted -- the existing repo state may already satisfy the requirement, and the "leave alone" semantic is preserved.
+
+When a repo references multiple `[security.*]` groups, reposets merges them with last-write-wins semantics. If the merge produces the same contradiction (for example, one group sets `vulnerability_alerts = false` and another sets `automated_security_fixes = true`), reposets detects this at sync time, logs an error, and skips the security stage for the affected repos rather than failing at the GitHub API. Restructure your security groups so the contradiction cannot arise on merge.
+
 ## Code Scanning Groups
 
 `[code_scanning.<name>]` tables configure CodeQL default setup. The settings are applied via `PATCH /repos/{owner}/{repo}/code-scanning/default-setup`. The endpoint returns `202 Accepted` and configures asynchronously; reposets sends the request and does not poll for completion.
@@ -150,6 +165,12 @@ state = "configured"
 languages = ["javascript-typescript", "python"]
 query_suite = "extended"
 threat_model = "remote"
+```
+
+The schema rejects `runner_type = "labeled"` without a corresponding `runner_label` at config-load time:
+
+```text
+runner_label is required when runner_type = "labeled"
 ```
 
 Reference code scanning groups from a repo group via the `code_scanning` array (see [Groups](#groups)).

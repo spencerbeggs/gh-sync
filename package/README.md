@@ -18,7 +18,7 @@ Managing repository settings by hand doesn't scale. When you have dozens of repo
 - **Ruleset shorthand syntax** — Define branch and tag rulesets with compact inline syntax for pull request rules, status checks, and boolean flags instead of verbose API payloads.
 - **Deployment environment management** — Configure wait timers, reviewers, and branch policies for deployment environments alongside your other settings.
 - **Advanced security and CodeQL** — Toggle secret scanning, push protection, vulnerability alerts, automated security fixes, private vulnerability reporting, and CodeQL default setup. License- and ownership-aware: GHAS-licensed fields warn instead of failing on private repos without a license, and org-only fields are silently skipped on personal accounts.
-- **Group-based targeting** — Organize repos into groups that share settings, secrets, variables, rulesets, and environments. Change the group config, sync once, and every repo updates.
+- **Group-based targeting** — Organize repos into groups that share settings, secrets, variables, rulesets, environments, security toggles, and code scanning configuration. Change the group config, sync once, and every repo updates.
 - **Cleanup policies** — Automatically remove undeclared resources per scope with optional preserve lists, so your repos converge to the declared state.
 - **Dry-run and validation** — Preview changes before applying, validate config locally without touching the GitHub API, and catch typos with built-in diagnostics.
 
@@ -131,6 +131,7 @@ Full reference guides are available in the [`docs/`](https://github.com/spencerb
 - [Secrets and Variables](https://github.com/spencerbeggs/reposets/blob/main/docs/secrets-and-variables.md) - resource groups, three kinds (file/value/resolved), and scoping
 - [Rulesets](https://github.com/spencerbeggs/reposets/blob/main/docs/rulesets.md) - branch and tag ruleset configuration
 - [Environments](https://github.com/spencerbeggs/reposets/blob/main/docs/environments.md) - deployment environment setup
+- [Advanced Security](https://github.com/spencerbeggs/reposets/blob/main/docs/configuration.md#security-and-analysis-nested-block) - secret scanning, vulnerability alerts, automated security fixes, private vulnerability reporting, and CodeQL default setup
 - [Cleanup](https://github.com/spencerbeggs/reposets/blob/main/docs/cleanup.md) - automatic cleanup of undeclared resources
 - [Token Permissions](https://github.com/spencerbeggs/reposets/blob/main/docs/token-permissions.md) - GitHub PAT setup guide
 
