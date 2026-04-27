@@ -232,7 +232,7 @@ describe("validateConfigRefs", () => {
 	});
 
 	it("rejects config with unknown security group reference", async () => {
-		const layer = makeConfigLayer(fixture("bad-refs.toml"));
+		const layer = makeConfigLayer(fixture("bad-security-refs.toml"));
 		const result = await runWithProvider(
 			Effect.gen(function* () {
 				const cf = yield* TestConfigFile;
@@ -249,7 +249,7 @@ describe("validateConfigRefs", () => {
 	});
 
 	it("rejects config with unknown code_scanning group reference", async () => {
-		const layer = makeConfigLayer(fixture("bad-refs.toml"));
+		const layer = makeConfigLayer(fixture("bad-code-scanning-refs.toml"));
 		const result = await runWithProvider(
 			Effect.gen(function* () {
 				const cf = yield* TestConfigFile;

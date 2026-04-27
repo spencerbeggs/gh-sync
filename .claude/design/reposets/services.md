@@ -88,7 +88,7 @@ for test capture. Test layer uses `logLevel: "silent"` to suppress output.
 
 ## GitHubClient
 
-Wraps Octokit with typed methods for all GitHub API operations. 30 methods
+Wraps Octokit with typed methods for all GitHub API operations. 29 methods
 organized into five domains: repo-level resources, environments,
 environment-scoped resources, repository security features, and CodeQL
 default setup.
@@ -149,10 +149,6 @@ return booleans normalized from the underlying API responses.
 
 ### Code Scanning Methods
 
-- `getCodeScanningDefaultSetup(owner, repo): CodeScanningDefaultSetup` -
-  `GET /repos/{o}/{r}/code-scanning/default-setup`. Returns the current
-  setup (state, languages, query_suite, threat_model, runner_type,
-  runner_label)
 - `updateCodeScanningDefaultSetup(owner, repo, config): void` -
   `PATCH /repos/{o}/{r}/code-scanning/default-setup`. The endpoint
   responds `202 Accepted` and applies asynchronously; the SyncEngine
@@ -219,7 +215,7 @@ appropriate Octokit API namespace. The `SecretScope` type is
 Live: `GitHubClientLive(token)` creates an Octokit instance per token; the
 `teamIdCache` (Map<string, number> keyed by `org:slug`) is per-instance.
 Test: `GitHubClientTest()` returns `{ layer, calls() }` recorder covering
-all 30 methods.
+all 29 methods.
 
 ## SyncEngine
 
@@ -263,7 +259,12 @@ Flow per group:
 12. Merge `[security.*]` groups via `mergeSecurityGroups()` and
     `[code_scanning.*]` groups via `mergeCodeScanningGroups()` -
     last-write-wins across all references; missing keys remain undefined
-    so they're "leave alone" at sync time
+    so they're "leave alone" at sync time. After merging, detect the
+    cross-field contradiction (`automated_security_fixes = true` paired
+    with `vulnerability_alerts = false`) that `SecurityGroupSchema`
+    rejects in a single group but that merging can recreate; if found,
+    the security stage logs an error and is skipped for the affected
+    repos rather than letting GitHub return 422
 13. Compute per-group cleanup config (no global merge; defaults to all-off)
 14. For each repo (skipping mutations in dry-run):
     - Sync settings (merged settings + folded `security_and_analysis`)

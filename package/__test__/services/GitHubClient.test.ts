@@ -404,18 +404,6 @@ describe("GitHubClient", () => {
 			});
 		});
 
-		it("getCodeScanningDefaultSetup returns empty object", async () => {
-			const recorder = GitHubClientTest();
-
-			const program = Effect.gen(function* () {
-				const client = yield* GitHubClient;
-				return yield* client.getCodeScanningDefaultSetup("o", "r");
-			}).pipe(Effect.provide(recorder.layer));
-
-			const result = await Effect.runPromise(program);
-			expect(result).toEqual({});
-		});
-
 		it("listRepoLanguages returns empty array", async () => {
 			const recorder = GitHubClientTest();
 

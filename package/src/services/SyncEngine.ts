@@ -430,6 +430,11 @@ export const SyncEngineLive = Layer.effect(
 							codeScanningRefs.map((ref) => config.code_scanning[ref]),
 						);
 						const hasSecurity = Object.keys(mergedSecurity).length > 0;
+						// SecurityGroupSchema rejects this contradiction in a single group, but
+						// last-write-wins merging across multiple referenced groups can recreate
+						// it. Detect and skip the sync rather than letting GitHub return 422.
+						const securityContradiction =
+							mergedSecurity.automated_security_fixes === true && mergedSecurity.vulnerability_alerts === false;
 						const hasCodeScanning = Object.keys(mergedCodeScanning).length > 0;
 						const hasSecrets = secretScopes.some((s) => (resolvedSecrets.get(s)?.size ?? 0) > 0);
 						const hasVariables = resolvedVariables.size > 0;
@@ -495,7 +500,12 @@ export const SyncEngineLive = Layer.effect(
 								// Sync security features (vulnerability_alerts, automated_security_fixes,
 								// private_vulnerability_reporting). Diff against current state and only
 								// apply when the configured value differs.
-								if (hasSecurity) {
+								if (hasSecurity && securityContradiction) {
+									yield* logger.syncError(
+										"security merge",
+										"automated_security_fixes = true requires vulnerability_alerts to be enabled (or omitted); skipping security sync",
+									);
+								} else if (hasSecurity) {
 									if (mergedSecurity.vulnerability_alerts !== undefined) {
 										const desired = mergedSecurity.vulnerability_alerts;
 										const current = yield* github.getVulnerabilityAlerts(owner, repoName).pipe(

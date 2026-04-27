@@ -357,7 +357,6 @@ describe("SyncEngine", () => {
 			setAutomatedSecurityFixes: () => Effect.void,
 			getPrivateVulnerabilityReporting: () => Effect.succeed(false),
 			setPrivateVulnerabilityReporting: () => Effect.void,
-			getCodeScanningDefaultSetup: () => Effect.succeed({}),
 			updateCodeScanningDefaultSetup: () => Effect.void,
 			listRepoLanguages: () => Effect.succeed([]),
 			resolveTeamId: () => Effect.succeed(0),
@@ -444,7 +443,6 @@ describe("SyncEngine", () => {
 			setAutomatedSecurityFixes: () => Effect.void,
 			getPrivateVulnerabilityReporting: () => Effect.succeed(false),
 			setPrivateVulnerabilityReporting: () => Effect.void,
-			getCodeScanningDefaultSetup: () => Effect.succeed({}),
 			updateCodeScanningDefaultSetup: () => Effect.void,
 			listRepoLanguages: () => Effect.succeed([]),
 			resolveTeamId: () => Effect.succeed(0),
@@ -526,7 +524,6 @@ describe("SyncEngine", () => {
 			setAutomatedSecurityFixes: () => Effect.void,
 			getPrivateVulnerabilityReporting: () => Effect.succeed(false),
 			setPrivateVulnerabilityReporting: () => Effect.void,
-			getCodeScanningDefaultSetup: () => Effect.succeed({}),
 			updateCodeScanningDefaultSetup: () => Effect.void,
 			listRepoLanguages: () => Effect.succeed([]),
 			resolveTeamId: () => Effect.succeed(0),
@@ -646,7 +643,6 @@ describe("SyncEngine", () => {
 			setAutomatedSecurityFixes: () => Effect.void,
 			getPrivateVulnerabilityReporting: () => Effect.succeed(false),
 			setPrivateVulnerabilityReporting: () => Effect.void,
-			getCodeScanningDefaultSetup: () => Effect.succeed({}),
 			updateCodeScanningDefaultSetup: () => Effect.void,
 			listRepoLanguages: () => Effect.succeed([]),
 			resolveTeamId: () => Effect.succeed(0),
@@ -799,6 +795,35 @@ describe("SyncEngine", () => {
 			});
 		});
 
+		it("skips security sync when merged config violates the cross-field invariant", async () => {
+			const { testLayer, recorder } = buildTestLayer();
+			// Each group is individually valid; the merge produces a contradiction
+			// (automated_security_fixes = true + vulnerability_alerts = false).
+			const config = makeTestConfig({
+				security: {
+					base: { vulnerability_alerts: false },
+					override: { automated_security_fixes: true },
+				},
+				groups: { mygroup: { repos: ["repo-one"], security: ["base", "override"] } },
+			});
+			const creds = makeTestCredentials();
+
+			await Effect.runPromise(
+				Effect.gen(function* () {
+					const engine = yield* SyncEngine;
+					return yield* engine.syncAll(config, creds, {
+						dryRun: false,
+						noCleanup: true,
+						configDir: process.cwd(),
+					});
+				}).pipe(Effect.provide(testLayer)),
+			);
+
+			const calls = recorder.calls();
+			expect(calls.some((c) => c.method === "setAutomatedSecurityFixes")).toBe(false);
+			expect(calls.some((c) => c.method === "setVulnerabilityAlerts")).toBe(false);
+		});
+
 		it("syncs code_scanning default setup with merged config", async () => {
 			const { testLayer, recorder } = buildTestLayer();
 			const config = makeTestConfig({
@@ -870,7 +895,6 @@ describe("SyncEngine", () => {
 				setAutomatedSecurityFixes: () => Effect.void,
 				getPrivateVulnerabilityReporting: () => Effect.succeed(false),
 				setPrivateVulnerabilityReporting: () => Effect.void,
-				getCodeScanningDefaultSetup: () => Effect.succeed({}),
 				updateCodeScanningDefaultSetup: (owner, repo, config) => {
 					recorded.push({ method: "updateCodeScanningDefaultSetup", args: { owner, repo, config } });
 					return Effect.void;
@@ -944,7 +968,6 @@ describe("SyncEngine", () => {
 				setAutomatedSecurityFixes: () => Effect.void,
 				getPrivateVulnerabilityReporting: () => Effect.succeed(false),
 				setPrivateVulnerabilityReporting: () => Effect.void,
-				getCodeScanningDefaultSetup: () => Effect.succeed({}),
 				updateCodeScanningDefaultSetup: (owner, repo, config) => {
 					recorded.push({ method: "updateCodeScanningDefaultSetup", args: { owner, repo, config } });
 					return Effect.void;
@@ -1061,7 +1084,6 @@ describe("SyncEngine", () => {
 				setAutomatedSecurityFixes: () => Effect.void,
 				getPrivateVulnerabilityReporting: () => Effect.succeed(false),
 				setPrivateVulnerabilityReporting: () => Effect.void,
-				getCodeScanningDefaultSetup: () => Effect.succeed({}),
 				updateCodeScanningDefaultSetup: () => Effect.void,
 				listRepoLanguages: () => Effect.succeed([]),
 				resolveTeamId: (org, slug) => {

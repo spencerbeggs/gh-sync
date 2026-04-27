@@ -7,15 +7,6 @@ import type { RulesetPayload } from "../schemas/ruleset.js";
 
 export type SecretScope = "actions" | "dependabot" | "codespaces";
 
-export interface CodeScanningDefaultSetup {
-	state?: "configured" | "not-configured" | undefined;
-	languages?: ReadonlyArray<string> | undefined;
-	query_suite?: "default" | "extended" | undefined;
-	threat_model?: "remote" | "remote_and_local" | undefined;
-	runner_type?: "standard" | "labeled" | undefined;
-	runner_label?: string | undefined;
-}
-
 export interface SecretInfo {
 	name: string;
 }
@@ -164,11 +155,6 @@ export interface GitHubClientService {
 		repo: string,
 		enabled: boolean,
 	) => Effect.Effect<void, GitHubApiError>;
-
-	readonly getCodeScanningDefaultSetup: (
-		owner: string,
-		repo: string,
-	) => Effect.Effect<CodeScanningDefaultSetup, GitHubApiError>;
 
 	readonly updateCodeScanningDefaultSetup: (
 		owner: string,
@@ -704,19 +690,6 @@ export function GitHubClientLive(token: string): Layer.Layer<GitHubClient> {
 					});
 				},
 
-				getCodeScanningDefaultSetup(owner, repo) {
-					return Effect.tryPromise({
-						try: async () => {
-							const { data } = await octokit.request("GET /repos/{owner}/{repo}/code-scanning/default-setup", {
-								owner,
-								repo,
-							});
-							return data as CodeScanningDefaultSetup;
-						},
-						catch: wrapError,
-					});
-				},
-
 				updateCodeScanningDefaultSetup(owner, repo, config) {
 					return Effect.tryPromise({
 						try: async () => {
@@ -893,10 +866,6 @@ export function GitHubClientTest(): { layer: Layer.Layer<GitHubClient>; calls: (
 		setPrivateVulnerabilityReporting(owner, repo, enabled) {
 			recorded.push({ method: "setPrivateVulnerabilityReporting", args: { owner, repo, enabled } });
 			return Effect.void;
-		},
-
-		getCodeScanningDefaultSetup(_owner, _repo) {
-			return Effect.succeed({});
 		},
 
 		updateCodeScanningDefaultSetup(owner, repo, config) {

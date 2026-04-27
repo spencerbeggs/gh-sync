@@ -7,5 +7,3 @@ settings = ["nonexistent-settings"]
 secrets = { actions = ["nonexistent-secrets"] }
 variables = { actions = ["nonexistent-vars"] }
 rulesets = ["nonexistent-ruleset"]
-security = ["nonexistent-security"]
-code_scanning = ["nonexistent-code-scanning"]
