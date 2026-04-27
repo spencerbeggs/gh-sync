@@ -42,6 +42,8 @@ File paths in `file`-kind secret and variable groups resolve relative to the dir
 
 **Security:** `web_commit_signoff_required`
 
+**Advanced security (nested):** `security_and_analysis` (see [Security and Analysis](#security-and-analysis-nested-block) below)
+
 Unknown fields are forwarded to the GitHub API as pass-through, so new GitHub settings can be used before the schema is updated.
 
 ```toml
@@ -60,6 +62,98 @@ Settings groups accept any additional fields beyond the typed ones listed above.
 
 Be careful with pass-through fields -- typos are silently forwarded to the API. Use `reposets doctor` to detect unknown keys.
 
+### Security and Analysis (nested block)
+
+Settings groups accept a nested `security_and_analysis` block that is folded into the same `PATCH /repos/{owner}/{repo}` call as the rest of the settings. Each scalar field accepts `"enabled"` or `"disabled"`.
+
+| Field | Notes |
+| :---- | :---- |
+| `secret_scanning` | Detect committed credentials and sensitive data. |
+| `secret_scanning_push_protection` | Block git pushes containing detected secrets. |
+| `secret_scanning_ai_detection` | (GHAS-licensed) AI-powered detection of generic secrets. |
+| `secret_scanning_non_provider_patterns` | (GHAS-licensed) Detect custom non-provider patterns. |
+| `secret_scanning_delegated_alert_dismissal` | (org-only) Allow delegated dismissal of alerts. |
+| `secret_scanning_delegated_bypass` | (org-only) Allow delegated approval of push-protection bypass. |
+| `dependabot_security_updates` | Open PRs to patch known dependency vulnerabilities. |
+| `delegated_bypass_reviewers` | (org-only) Array of `{ team, mode }` or `{ role, mode }` entries (see below). |
+
+Annotations:
+
+- **(GHAS-licensed)** -- requires a GitHub Advanced Security license on private repos. Free on public repos. If applied to a private repo without a license, reposets logs a warning and continues; the run does not fail.
+- **(org-only)** -- silently skipped on personal accounts with a logged warning. Owner type is detected once per group via the GitHub API.
+
+```toml
+[settings.oss-defaults.security_and_analysis]
+secret_scanning = "enabled"
+secret_scanning_push_protection = "enabled"
+secret_scanning_ai_detection = "enabled"
+dependabot_security_updates = "enabled"
+```
+
+#### Delegated bypass reviewers
+
+`delegated_bypass_reviewers` is an array of objects, each specifying exactly one of `team` (a GitHub team slug) or `role` (a repository role name like `"admin"` or `"maintain"`), plus an optional `mode` (`"ALWAYS"` or `"EXEMPT"`):
+
+```toml
+[[settings.oss-defaults.security_and_analysis.delegated_bypass_reviewers]]
+team = "security-team"
+mode = "ALWAYS"
+
+[[settings.oss-defaults.security_and_analysis.delegated_bypass_reviewers]]
+role = "admin"
+mode = "EXEMPT"
+```
+
+Team slugs are resolved to numeric reviewer IDs at sync time using the GitHub API (cached per `org:slug`). Resolving teams requires the `Organization > Members (Read)` token permission.
+
+## Security Groups
+
+`[security.<name>]` tables toggle repository-level security features that have dedicated `PUT`/`DELETE` endpoints, separate from the main repo settings call. reposets diffs each field against the current state and only applies changes.
+
+| Field | Type | Description |
+| :---- | :--- | :---------- |
+| `vulnerability_alerts` | boolean | Enable Dependabot vulnerability alerts. |
+| `automated_security_fixes` | boolean | Enable Dependabot security pull requests. Requires `vulnerability_alerts = true`. |
+| `private_vulnerability_reporting` | boolean | Enable the private vulnerability reporting inbox. |
+
+Omitted keys are left untouched on the repo.
+
+```toml
+[security.oss-defaults]
+vulnerability_alerts = true
+automated_security_fixes = true
+private_vulnerability_reporting = true
+```
+
+Reference security groups from a repo group via the `security` array (see [Groups](#groups)).
+
+## Code Scanning Groups
+
+`[code_scanning.<name>]` tables configure CodeQL default setup. The settings are applied via `PATCH /repos/{owner}/{repo}/code-scanning/default-setup`. The endpoint returns `202 Accepted` and is fire-and-forget by default; in `--log-level verbose` mode reposets polls until the configuration is applied.
+
+| Field | Type | Description |
+| :---- | :--- | :---------- |
+| `state` | `"configured"` \| `"not-configured"` | Enable or disable default setup. |
+| `languages` | array | Subset of CodeQL default-setup languages to analyze (see below). |
+| `query_suite` | `"default"` \| `"extended"` | Standard query set or extended security queries. |
+| `threat_model` | `"remote"` \| `"remote_and_local"` | Network sources only, or include filesystem and environment access. |
+| `runner_type` | `"standard"` \| `"labeled"` | GitHub-hosted runners or self-hosted runners by label. |
+| `runner_label` | string | Self-hosted runner label. Required when `runner_type = "labeled"`. |
+
+The `languages` array accepts a subset of GitHub's nine default-setup languages: `actions`, `c-cpp`, `csharp`, `go`, `java-kotlin`, `javascript-typescript`, `python`, `ruby`, `swift`. (Note: this is narrower than the CodeQL analyzer itself -- Rust is supported by CodeQL but not yet by default setup.)
+
+At sync time, reposets filters configured languages against the languages GitHub detects in the repository. Languages not detected are dropped with a warning; the rest are applied without failing the run.
+
+```toml
+[code_scanning.oss-defaults]
+state = "configured"
+languages = ["javascript-typescript", "python"]
+query_suite = "extended"
+threat_model = "remote"
+```
+
+Reference code scanning groups from a repo group via the `code_scanning` array (see [Groups](#groups)).
+
 ## Groups
 
 `[groups.<name>]` tables tie repositories to resources. Each group maps a list of repos to the settings, environments, secrets, variables, and rulesets that should be applied to them.
@@ -74,6 +168,8 @@ Be careful with pass-through fields -- typos are silently forwarded to the API. 
 | `secrets` | SecretScopes | no | Secret assignments by scope (see [Secrets and Variables](secrets-and-variables.md)) |
 | `variables` | VariableScopes | no | Variable assignments by scope (see [Secrets and Variables](secrets-and-variables.md)) |
 | `rulesets` | string[] | no | Ruleset names to apply |
+| `security` | string[] | no | Security group names to apply (see [Security Groups](#security-groups)) |
+| `code_scanning` | string[] | no | Code scanning group names to apply (see [Code Scanning Groups](#code-scanning-groups)) |
 | `cleanup` | object | no | Per-group cleanup config (see [Cleanup](cleanup.md)) |
 
 ```toml
@@ -84,6 +180,8 @@ environments = ["staging", "production"]
 secrets = { actions = ["deploy", "api"], dependabot = ["deploy"], environments = { production = ["api"] } }
 variables = { actions = ["turbo", "bot"], environments = { staging = ["turbo"] } }
 rulesets = ["branch-protection"]
+security = ["oss-defaults"]
+code_scanning = ["oss-defaults"]
 ```
 
 ## Editor Support
@@ -107,6 +205,21 @@ log_level = "info"
 has_wiki = false
 has_discussions = false
 delete_branch_on_merge = true
+
+[settings.default.security_and_analysis]
+secret_scanning = "enabled"
+secret_scanning_push_protection = "enabled"
+dependabot_security_updates = "enabled"
+
+[security.oss-defaults]
+vulnerability_alerts = true
+automated_security_fixes = true
+private_vulnerability_reporting = true
+
+[code_scanning.oss-defaults]
+state = "configured"
+languages = ["javascript-typescript"]
+query_suite = "default"
 
 [environments.staging]
 wait_timer = 0
@@ -156,6 +269,8 @@ environments = ["staging", "production"]
 secrets = { actions = ["deploy", "api"], dependabot = ["deploy"], environments = { production = ["api"] } }
 variables = { actions = ["turbo", "bot"], environments = { staging = ["turbo"] } }
 rulesets = ["branch-protection"]
+security = ["oss-defaults"]
+code_scanning = ["oss-defaults"]
 cleanup = {
   rulesets = true,
   environments = true,

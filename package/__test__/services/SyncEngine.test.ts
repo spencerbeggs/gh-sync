@@ -22,6 +22,8 @@ function makeTestConfig(overrides: Partial<Config> = {}): Config {
 		},
 		rulesets: {},
 		environments: {},
+		security: {},
+		code_scanning: {},
 		groups: {
 			mygroup: {
 				repos: ["repo-one"],
@@ -349,6 +351,16 @@ describe("SyncEngine", () => {
 			deleteEnvironment: () => Effect.void,
 			deleteEnvironmentSecret: () => Effect.void,
 			deleteEnvironmentVariable: () => Effect.void,
+			getVulnerabilityAlerts: () => Effect.succeed(false),
+			setVulnerabilityAlerts: () => Effect.void,
+			getAutomatedSecurityFixes: () => Effect.succeed(false),
+			setAutomatedSecurityFixes: () => Effect.void,
+			getPrivateVulnerabilityReporting: () => Effect.succeed(false),
+			setPrivateVulnerabilityReporting: () => Effect.void,
+			getCodeScanningDefaultSetup: () => Effect.succeed({}),
+			updateCodeScanningDefaultSetup: () => Effect.void,
+			listRepoLanguages: () => Effect.succeed([]),
+			resolveTeamId: () => Effect.succeed(0),
 		});
 
 		const opStubs = OnePasswordClientTest({});
@@ -426,6 +438,16 @@ describe("SyncEngine", () => {
 			},
 			deleteEnvironmentSecret: () => Effect.void,
 			deleteEnvironmentVariable: () => Effect.void,
+			getVulnerabilityAlerts: () => Effect.succeed(false),
+			setVulnerabilityAlerts: () => Effect.void,
+			getAutomatedSecurityFixes: () => Effect.succeed(false),
+			setAutomatedSecurityFixes: () => Effect.void,
+			getPrivateVulnerabilityReporting: () => Effect.succeed(false),
+			setPrivateVulnerabilityReporting: () => Effect.void,
+			getCodeScanningDefaultSetup: () => Effect.succeed({}),
+			updateCodeScanningDefaultSetup: () => Effect.void,
+			listRepoLanguages: () => Effect.succeed([]),
+			resolveTeamId: () => Effect.succeed(0),
 		});
 
 		const opStubs = OnePasswordClientTest({});
@@ -498,6 +520,16 @@ describe("SyncEngine", () => {
 				return Effect.void;
 			},
 			deleteEnvironmentVariable: () => Effect.void,
+			getVulnerabilityAlerts: () => Effect.succeed(false),
+			setVulnerabilityAlerts: () => Effect.void,
+			getAutomatedSecurityFixes: () => Effect.succeed(false),
+			setAutomatedSecurityFixes: () => Effect.void,
+			getPrivateVulnerabilityReporting: () => Effect.succeed(false),
+			setPrivateVulnerabilityReporting: () => Effect.void,
+			getCodeScanningDefaultSetup: () => Effect.succeed({}),
+			updateCodeScanningDefaultSetup: () => Effect.void,
+			listRepoLanguages: () => Effect.succeed([]),
+			resolveTeamId: () => Effect.succeed(0),
 		});
 
 		const opStubs = OnePasswordClientTest({});
@@ -608,6 +640,16 @@ describe("SyncEngine", () => {
 			deleteEnvironment: () => Effect.void,
 			deleteEnvironmentSecret: () => Effect.void,
 			deleteEnvironmentVariable: () => Effect.void,
+			getVulnerabilityAlerts: () => Effect.succeed(false),
+			setVulnerabilityAlerts: () => Effect.void,
+			getAutomatedSecurityFixes: () => Effect.succeed(false),
+			setAutomatedSecurityFixes: () => Effect.void,
+			getPrivateVulnerabilityReporting: () => Effect.succeed(false),
+			setPrivateVulnerabilityReporting: () => Effect.void,
+			getCodeScanningDefaultSetup: () => Effect.succeed({}),
+			updateCodeScanningDefaultSetup: () => Effect.void,
+			listRepoLanguages: () => Effect.succeed([]),
+			resolveTeamId: () => Effect.succeed(0),
 		});
 
 		const opStubs = OnePasswordClientTest({});
@@ -646,5 +688,357 @@ describe("SyncEngine", () => {
 
 		// No cleanup should happen when noCleanup is true
 		expect(deleted).toHaveLength(0);
+	});
+
+	describe("Advanced security sync", () => {
+		it("syncs vulnerability_alerts when current state differs from desired", async () => {
+			const { testLayer, recorder } = buildTestLayer();
+			const config = makeTestConfig({
+				security: { oss: { vulnerability_alerts: true } },
+				groups: {
+					mygroup: { repos: ["repo-one"], security: ["oss"] },
+				},
+			});
+			const creds = makeTestCredentials();
+
+			const program = Effect.gen(function* () {
+				const engine = yield* SyncEngine;
+				return yield* engine.syncAll(config, creds, { dryRun: false, noCleanup: true, configDir: process.cwd() });
+			}).pipe(Effect.provide(testLayer));
+
+			await Effect.runPromise(program);
+
+			expect(recorder.calls()).toContainEqual({
+				method: "setVulnerabilityAlerts",
+				args: { owner: "testowner", repo: "repo-one", enabled: true },
+			});
+		});
+
+		it("syncs all three security feature toggles when configured", async () => {
+			const { testLayer, recorder } = buildTestLayer();
+			const config = makeTestConfig({
+				security: {
+					oss: {
+						vulnerability_alerts: true,
+						automated_security_fixes: true,
+						private_vulnerability_reporting: true,
+					},
+				},
+				groups: { mygroup: { repos: ["repo-one"], security: ["oss"] } },
+			});
+			const creds = makeTestCredentials();
+
+			await Effect.runPromise(
+				Effect.gen(function* () {
+					const engine = yield* SyncEngine;
+					return yield* engine.syncAll(config, creds, {
+						dryRun: false,
+						noCleanup: true,
+						configDir: process.cwd(),
+					});
+				}).pipe(Effect.provide(testLayer)),
+			);
+
+			const methods = recorder.calls().map((c) => c.method);
+			expect(methods).toContain("setVulnerabilityAlerts");
+			expect(methods).toContain("setAutomatedSecurityFixes");
+			expect(methods).toContain("setPrivateVulnerabilityReporting");
+		});
+
+		it("does not call security setters in dry-run mode", async () => {
+			const { testLayer, recorder } = buildTestLayer();
+			const config = makeTestConfig({
+				security: { oss: { vulnerability_alerts: true } },
+				groups: { mygroup: { repos: ["repo-one"], security: ["oss"] } },
+			});
+			const creds = makeTestCredentials();
+
+			await Effect.runPromise(
+				Effect.gen(function* () {
+					const engine = yield* SyncEngine;
+					return yield* engine.syncAll(config, creds, {
+						dryRun: true,
+						noCleanup: true,
+						configDir: process.cwd(),
+					});
+				}).pipe(Effect.provide(testLayer)),
+			);
+
+			expect(recorder.calls().some((c) => c.method.startsWith("set"))).toBe(false);
+		});
+
+		it("merges multiple security groups (last write wins)", async () => {
+			const { testLayer, recorder } = buildTestLayer();
+			const config = makeTestConfig({
+				security: {
+					base: { vulnerability_alerts: false, automated_security_fixes: true },
+					override: { vulnerability_alerts: true },
+				},
+				groups: { mygroup: { repos: ["repo-one"], security: ["base", "override"] } },
+			});
+			const creds = makeTestCredentials();
+
+			await Effect.runPromise(
+				Effect.gen(function* () {
+					const engine = yield* SyncEngine;
+					return yield* engine.syncAll(config, creds, {
+						dryRun: false,
+						noCleanup: true,
+						configDir: process.cwd(),
+					});
+				}).pipe(Effect.provide(testLayer)),
+			);
+
+			expect(recorder.calls()).toContainEqual({
+				method: "setVulnerabilityAlerts",
+				args: { owner: "testowner", repo: "repo-one", enabled: true },
+			});
+			expect(recorder.calls()).toContainEqual({
+				method: "setAutomatedSecurityFixes",
+				args: { owner: "testowner", repo: "repo-one", enabled: true },
+			});
+		});
+
+		it("syncs code_scanning default setup with merged config", async () => {
+			const { testLayer, recorder } = buildTestLayer();
+			const config = makeTestConfig({
+				code_scanning: {
+					oss: {
+						state: "configured",
+						query_suite: "extended",
+						threat_model: "remote",
+					},
+				},
+				groups: { mygroup: { repos: ["repo-one"], code_scanning: ["oss"] } },
+			});
+			const creds = makeTestCredentials();
+
+			await Effect.runPromise(
+				Effect.gen(function* () {
+					const engine = yield* SyncEngine;
+					return yield* engine.syncAll(config, creds, {
+						dryRun: false,
+						noCleanup: true,
+						configDir: process.cwd(),
+					});
+				}).pipe(Effect.provide(testLayer)),
+			);
+
+			expect(recorder.calls()).toContainEqual(
+				expect.objectContaining({
+					method: "updateCodeScanningDefaultSetup",
+					args: expect.objectContaining({
+						owner: "testowner",
+						repo: "repo-one",
+						config: expect.objectContaining({
+							state: "configured",
+							query_suite: "extended",
+							threat_model: "remote",
+						}),
+					}),
+				}),
+			);
+		});
+
+		it("filters code_scanning languages by detected repo languages", async () => {
+			// Custom recorder with non-default listRepoLanguages
+			const recorded: Array<{ method: string; args: Record<string, unknown> }> = [];
+			const githubLayer = Layer.succeed(GitHubClient, {
+				getOwnerType: () => Effect.succeed("User" as const),
+				syncSecret: () => Effect.void,
+				syncVariable: () => Effect.void,
+				syncSettings: () => Effect.void,
+				syncRuleset: () => Effect.void,
+				listSecrets: () => Effect.succeed([]),
+				listVariables: () => Effect.succeed([]),
+				listRulesets: () => Effect.succeed([]),
+				deleteSecret: () => Effect.void,
+				deleteVariable: () => Effect.void,
+				deleteRuleset: () => Effect.void,
+				syncEnvironment: () => Effect.void,
+				syncEnvironmentSecret: () => Effect.void,
+				syncEnvironmentVariable: () => Effect.void,
+				listEnvironments: () => Effect.succeed([]),
+				listEnvironmentSecrets: () => Effect.succeed([]),
+				listEnvironmentVariables: () => Effect.succeed([]),
+				deleteEnvironment: () => Effect.void,
+				deleteEnvironmentSecret: () => Effect.void,
+				deleteEnvironmentVariable: () => Effect.void,
+				getVulnerabilityAlerts: () => Effect.succeed(false),
+				setVulnerabilityAlerts: () => Effect.void,
+				getAutomatedSecurityFixes: () => Effect.succeed(false),
+				setAutomatedSecurityFixes: () => Effect.void,
+				getPrivateVulnerabilityReporting: () => Effect.succeed(false),
+				setPrivateVulnerabilityReporting: () => Effect.void,
+				getCodeScanningDefaultSetup: () => Effect.succeed({}),
+				updateCodeScanningDefaultSetup: (owner, repo, config) => {
+					recorded.push({ method: "updateCodeScanningDefaultSetup", args: { owner, repo, config } });
+					return Effect.void;
+				},
+				listRepoLanguages: () => Effect.succeed(["TypeScript", "JavaScript"]),
+				resolveTeamId: () => Effect.succeed(0),
+			});
+
+			const opStubs = OnePasswordClientTest({});
+			const credResolverLayer = Layer.provide(CredentialResolverLive, opStubs);
+			const loggerLayer = SyncLoggerLive({ dryRun: false, logLevel: "silent" });
+			const testLayer = Layer.provideMerge(
+				SyncEngineLive,
+				Layer.merge(Layer.merge(githubLayer, credResolverLayer), loggerLayer),
+			);
+
+			const config = makeTestConfig({
+				code_scanning: {
+					oss: {
+						state: "configured",
+						languages: ["javascript-typescript", "python"],
+					},
+				},
+				groups: { mygroup: { repos: ["repo-one"], code_scanning: ["oss"] } },
+			});
+			const creds = makeTestCredentials();
+
+			await Effect.runPromise(
+				Effect.gen(function* () {
+					const engine = yield* SyncEngine;
+					return yield* engine.syncAll(config, creds, {
+						dryRun: false,
+						noCleanup: true,
+						configDir: process.cwd(),
+					});
+				}).pipe(Effect.provide(testLayer)),
+			);
+
+			expect(recorded).toHaveLength(1);
+			const config0 = recorded[0]?.args.config as { languages: string[] };
+			expect(config0.languages).toEqual(["javascript-typescript"]);
+			expect(config0.languages).not.toContain("python");
+		});
+
+		it("strips org-only security_and_analysis fields on personal accounts", async () => {
+			const { testLayer, recorder } = buildTestLayer();
+			const config = makeTestConfig({
+				settings: {
+					oss: {
+						security_and_analysis: {
+							secret_scanning: "enabled",
+							secret_scanning_delegated_bypass: "enabled",
+							delegated_bypass_reviewers: [{ team: "security-team", mode: "ALWAYS" }],
+						},
+					},
+				},
+				groups: { mygroup: { repos: ["repo-one"], settings: ["oss"] } },
+			});
+			const creds = makeTestCredentials();
+
+			await Effect.runPromise(
+				Effect.gen(function* () {
+					const engine = yield* SyncEngine;
+					return yield* engine.syncAll(config, creds, {
+						dryRun: false,
+						noCleanup: true,
+						configDir: process.cwd(),
+					});
+				}).pipe(Effect.provide(testLayer)),
+			);
+
+			const settingsCall = recorder.calls().find((c) => c.method === "syncSettings");
+			expect(settingsCall).toBeDefined();
+			const settings = settingsCall?.args.settings as { security_and_analysis?: Record<string, unknown> };
+			expect(settings.security_and_analysis).toBeDefined();
+			expect(settings.security_and_analysis?.secret_scanning).toBe("enabled");
+			// Org-only fields should have been dropped
+			expect(settings.security_and_analysis?.secret_scanning_delegated_bypass).toBeUndefined();
+			expect(settings.security_and_analysis?.delegated_bypass_reviewers).toBeUndefined();
+			// And resolveTeamId should NOT have been called
+			expect(recorder.calls().some((c) => c.method === "resolveTeamId")).toBe(false);
+		});
+
+		it("resolves team slugs to reviewer IDs on org accounts", async () => {
+			// Custom layer that returns Organization for getOwnerType and stubs resolveTeamId
+			const recorded: Array<{ method: string; args: Record<string, unknown> }> = [];
+			const githubLayer = Layer.succeed(GitHubClient, {
+				getOwnerType: () => Effect.succeed("Organization" as const),
+				syncSecret: () => Effect.void,
+				syncVariable: () => Effect.void,
+				syncSettings: (owner, repo, settings) => {
+					recorded.push({ method: "syncSettings", args: { owner, repo, settings } });
+					return Effect.void;
+				},
+				syncRuleset: () => Effect.void,
+				listSecrets: () => Effect.succeed([]),
+				listVariables: () => Effect.succeed([]),
+				listRulesets: () => Effect.succeed([]),
+				deleteSecret: () => Effect.void,
+				deleteVariable: () => Effect.void,
+				deleteRuleset: () => Effect.void,
+				syncEnvironment: () => Effect.void,
+				syncEnvironmentSecret: () => Effect.void,
+				syncEnvironmentVariable: () => Effect.void,
+				listEnvironments: () => Effect.succeed([]),
+				listEnvironmentSecrets: () => Effect.succeed([]),
+				listEnvironmentVariables: () => Effect.succeed([]),
+				deleteEnvironment: () => Effect.void,
+				deleteEnvironmentSecret: () => Effect.void,
+				deleteEnvironmentVariable: () => Effect.void,
+				getVulnerabilityAlerts: () => Effect.succeed(false),
+				setVulnerabilityAlerts: () => Effect.void,
+				getAutomatedSecurityFixes: () => Effect.succeed(false),
+				setAutomatedSecurityFixes: () => Effect.void,
+				getPrivateVulnerabilityReporting: () => Effect.succeed(false),
+				setPrivateVulnerabilityReporting: () => Effect.void,
+				getCodeScanningDefaultSetup: () => Effect.succeed({}),
+				updateCodeScanningDefaultSetup: () => Effect.void,
+				listRepoLanguages: () => Effect.succeed([]),
+				resolveTeamId: (org, slug) => {
+					recorded.push({ method: "resolveTeamId", args: { org, slug } });
+					return Effect.succeed(slug === "security-team" ? 12345 : 0);
+				},
+			});
+
+			const opStubs = OnePasswordClientTest({});
+			const credResolverLayer = Layer.provide(CredentialResolverLive, opStubs);
+			const loggerLayer = SyncLoggerLive({ dryRun: false, logLevel: "silent" });
+			const testLayer = Layer.provideMerge(
+				SyncEngineLive,
+				Layer.merge(Layer.merge(githubLayer, credResolverLayer), loggerLayer),
+			);
+
+			const config = makeTestConfig({
+				owner: "myorg",
+				settings: {
+					oss: {
+						security_and_analysis: {
+							secret_scanning_delegated_bypass: "enabled",
+							delegated_bypass_reviewers: [{ team: "security-team", mode: "ALWAYS" }, { role: "admin" }],
+						},
+					},
+				},
+				groups: { mygroup: { repos: ["repo-one"], settings: ["oss"] } },
+			});
+			const creds = makeTestCredentials();
+
+			await Effect.runPromise(
+				Effect.gen(function* () {
+					const engine = yield* SyncEngine;
+					return yield* engine.syncAll(config, creds, {
+						dryRun: false,
+						noCleanup: true,
+						configDir: process.cwd(),
+					});
+				}).pipe(Effect.provide(testLayer)),
+			);
+
+			expect(recorded.some((r) => r.method === "resolveTeamId" && r.args.slug === "security-team")).toBe(true);
+			const settingsCall = recorded.find((r) => r.method === "syncSettings");
+			expect(settingsCall).toBeDefined();
+			const settings = settingsCall?.args.settings as {
+				security_and_analysis?: { delegated_bypass_reviewers?: Array<Record<string, unknown>> };
+			};
+			const reviewers = settings.security_and_analysis?.delegated_bypass_reviewers;
+			expect(reviewers).toHaveLength(2);
+			expect(reviewers?.[0]).toMatchObject({ reviewer_id: 12345, reviewer_type: "TEAM", mode: "ALWAYS" });
+			expect(reviewers?.[1]).toMatchObject({ reviewer_id: "admin", reviewer_type: "ROLE" });
+		});
 	});
 });
